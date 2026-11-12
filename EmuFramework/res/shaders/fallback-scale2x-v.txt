@@ -1,3 +1,7 @@
+/* NEO-Duo
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Pass the coordinate and the source-pixel position. The fragment reads neighbors.
+ */
 uniform vec2 srcPixels;
 in vec2 texUV;
 out vec2 texUVOut;

@@ -128,15 +128,32 @@ void EmuVideoLayer::place(WindowRect viewRect, WindowRect displayRect, EmuInputV
 				}
 			}
 		}
-		if(viewportAspectRatio < 1.f && inputView)
+		bool portrait = viewportAspectRatio < 1.f;
+		int16_t placeScale = portrait ? portraitPlaceScale : landscapePlaceScale;
+		if(placeScale >= 25 && placeScale != 100)
 		{
-			contentRect_.setPos(viewRect.pos(CT2DO) + WPt{0, inputView->uiElementHeight() + portraitOffset}, CT2DO);
+			float scaler = placeScale / 100.f;
+			contentRect_.x2 *= scaler;
+			contentRect_.y2 *= scaler;
 		}
+		int ox = portrait ? portraitOffsetX : landscapeOffset;
+		int oy = portrait ? portraitOffset : landscapeOffsetY;
+		if(portrait && inputView)
+			contentRect_.setPos(viewRect.pos(CT2DO) + WPt{ox, inputView->uiElementHeight() + oy}, CT2DO);
+		else
+			contentRect_.setPos(displayRect.center() + WPt{ox, oy}, C2DO);
+		// Offsets of 0 and a 100% placement scale keep the image inside the
+		// strip-aware display rect. Any other placement can sit anywhere on
+		// the full window, including over the control strip.
+		if(!ox && !oy && (placeScale == 100 || placeScale < 25))
+			contentRect_.fitIn(displayRect);
 		else
 		{
-			contentRect_.setPos(displayRect.center() + WPt{landscapeOffset, 0}, C2DO);
+			auto center = contentRect_.center();
+			center.x = std::clamp(center.x, viewRect.x, viewRect.x2);
+			center.y = std::clamp(center.y, viewRect.y, viewRect.y2);
+			contentRect_.setPos(center, C2DO);
 		}
-		contentRect_.fitIn(displayRect);
 		quad.write(0, {.bounds = contentRect_.as<int16_t>(), .textureSpan = texture, .rotation = rotation});
 		//log.info("placed game rect at pixels {}:{}:{}:{}", contentRect_.x, contentRect_.y, contentRect_.x2, contentRect_.y2);
 	}

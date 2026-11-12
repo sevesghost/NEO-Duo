@@ -1,5 +1,6 @@
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
+#include <emuframework/AppKeyCode.hh>
 
 namespace EmuEx
 {
@@ -24,7 +25,7 @@ VControllerElement &VController::addDuoButton(KeyInfo key, int16_t sizeMM100x, u
 	conf.layout.rowItems = 1;
 	conf.layout.origin = LB2DO;
 	auto &elem = gpElements.emplace_back(std::in_place_type<VControllerButtonGroup>, conf);
-	uint8_t alpha = playerSet == 1 ? p2Alpha_ : playerSet == 0 ? p1Alpha_ : 0;
+	uint8_t alpha = playerSet == 1 ? p2Alpha_ : playerSet == 2 ? sharedAlpha_ : p1Alpha_;
 	stampDuoElement(elem, sizeMM100x, playerSet, role, alpha);
 	if(hasWindow())
 		update(elem);
@@ -34,7 +35,7 @@ VControllerElement &VController::addDuoButton(KeyInfo key, int16_t sizeMM100x, u
 VControllerElement &VController::addDuoDPad(std::span<const KeyInfo, 4> keys, int16_t sizeMM100x, uint8_t playerSet, uint8_t role)
 {
 	auto &elem = gpElements.emplace_back(std::in_place_type<VControllerDPad>, keys);
-	uint8_t alpha = playerSet == 1 ? p2Alpha_ : playerSet == 0 ? p1Alpha_ : 0;
+	uint8_t alpha = playerSet == 1 ? p2Alpha_ : playerSet == 2 ? sharedAlpha_ : p1Alpha_;
 	stampDuoElement(elem, sizeMM100x, playerSet, role, alpha);
 	if(hasWindow())
 	{
@@ -59,6 +60,7 @@ void VController::setTwoPlayerControls(bool on)
 	twoPlayer_ = on;
 	duoCustomized_ = false;
 	resetEmulatedDeviceGroups();
+	syncDuoModeButton();
 	if(hasWindow())
 	{
 		place();
@@ -96,14 +98,35 @@ void VController::setShowSharedFaceRow(bool on)
 	}
 }
 
+static void applyOpacity(VControllerElement &elem, uint8_t alpha)
+{
+	elem.ownAlpha = alpha;
+	if(alpha)
+		elem.duoFlags |= VControllerElement::DUO_OWN_ALPHA;
+}
+
 void VController::setPlayerFaceSizeMM100x(int player, int mm100x)
 {
 	mm100x = std::clamp(mm100x, 900, 3000);
-	if(player)
+	if(lockPlayerSizes_)
+		p1Size_ = p2Size_ = int16_t(mm100x);
+	else if(player)
 		p2Size_ = int16_t(mm100x);
 	else
 		p1Size_ = int16_t(mm100x);
-	duoCustomized_ = false;
+	// A size change keeps dragged anchors. The default layout still rebuilds
+	// when the player has not moved anything.
+	if(duoCustomized_)
+		AppMeta::refreshDuoButtonSizes(*this);
+	if(hasWindow())
+		place();
+}
+
+void VController::setSharedFaceSizeMM100x(int mm100x)
+{
+	sharedSize_ = int16_t(std::clamp(mm100x, 900, 3000));
+	if(duoCustomized_)
+		AppMeta::refreshDuoButtonSizes(*this);
 	if(hasWindow())
 		place();
 }
@@ -118,30 +141,81 @@ void VController::setPlayerOpacity(int player, uint8_t alpha)
 	{
 		if(elem.playerSet() != (player ? 1 : 0))
 			continue;
-		elem.ownAlpha = alpha;
-		elem.duoFlags |= VControllerElement::DUO_OWN_ALPHA;
+		applyOpacity(elem, alpha);
 	}
 	applySavedButtonAlpha();
 }
 
+void VController::setSharedOpacity(uint8_t alpha)
+{
+	sharedAlpha_ = alpha;
+	for(auto &elem : gpElements)
+	{
+		if(elem.playerSet() != 2)
+			continue;
+		applyOpacity(elem, alpha);
+	}
+	applySavedButtonAlpha();
+}
+
+void VController::setLockPlayerSizes(bool on)
+{
+	lockPlayerSizes_ = on;
+	if(on)
+		setPlayerFaceSizeMM100x(0, p1Size_);
+}
+
+void VController::setVideoBottomInsetMM(int layout, float mm)
+{
+	if(layout >= 0 && layout < 2)
+		bottomInsetMM_[layout] = mm;
+}
+
 int VController::activeGamepadLayoutIndex() const
 {
-	if(!twoPlayer_ || !hasWindow())
-		return hasWindow() ? int(window().isPortrait()) : 0;
-	float aspect = float(window().width()) / float(std::max(1, window().height()));
-	return aspect > 1.6f ? 0 : 1;
+	if(!hasWindow())
+		return 0;
+	return int(window().isPortrait());
 }
 
 int VController::videoBottomInsetPx() const
 {
-	if(!twoPlayer_ || !hasWindow() || activeGamepadLayoutIndex() == 0)
+	if(!twoPlayer_ || !hasWindow())
 		return 0;
-	return std::max(0, yMMSizeToPixel(window(), bottomInsetMM_));
+	int idx = activeGamepadLayoutIndex();
+	return std::max(0, yMMSizeToPixel(window(), bottomInsetMM_[idx]));
 }
 
 void VController::noteDuoDrag()
 {
 	duoCustomized_ = true;
+}
+
+void VController::syncDuoModeButton()
+{
+	std::erase_if(uiElements, [](const VControllerElement &elem)
+	{
+		auto *grp = elem.uiButtonGroup();
+		if(!grp)
+			return false;
+		return std::ranges::any_of(grp->buttons, [](const VControllerButton &btn)
+		{
+			return btn.key.flags.appCode && AppKeyCode(btn.key.codes[0]) == AppKeyCode::toggleDuoLayout;
+		});
+	});
+	if(!twoPlayer_)
+		return;
+	VControllerUIButtonGroup::Config conf;
+	conf.keys = {KeyInfo::appKey(AppKeyCode::toggleDuoLayout)};
+	conf.layout.rowItems = 1;
+	conf.layout.origin = CT2DO;
+	auto &elem = uiElements.emplace_back(std::in_place_type<VControllerUIButtonGroup>, conf);
+	elem.sizeMM100x = 900;
+	elem.duoFlags = VControllerElement::DUO_POS_MM;
+	setDuoPosition(elem, 0, CT2DO, 0.f, 8.f);
+	setDuoPosition(elem, 1, CT2DO, 0.f, 8.f);
+	if(hasWindow())
+		update(elem);
 }
 
 void VController::rebuildDuoIfNeeded()

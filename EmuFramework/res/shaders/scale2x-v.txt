@@ -1,3 +1,8 @@
+/* NEO-Duo
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Original neighborhood for the 2x rule below. Outputs are the center sample
+ * and its four orthogonal neighbors, plus the pixel position in source texels.
+ */
 uniform vec2 srcTexelDelta;
 uniform vec2 srcPixels;
 in vec2 texUV;
@@ -6,13 +11,13 @@ out vec2 texelPosOut;
 
 void main()
 {
-	vec2 offsetX = vec2(srcTexelDelta.x, 0.0);
-	vec2 offsetY = vec2(0.0, srcTexelDelta.y);
-	texUVOut[0] = texUV - offsetY;
-	texUVOut[1] = texUV - offsetX;
+	vec2 stepX = vec2(srcTexelDelta.x, 0.0);
+	vec2 stepY = vec2(0.0, srcTexelDelta.y);
+	texUVOut[0] = texUV - stepY;
+	texUVOut[1] = texUV - stepX;
 	texUVOut[2] = texUV;
-	texUVOut[3] = texUV + offsetX;
-	texUVOut[4] = texUV + offsetY;
+	texUVOut[3] = texUV + stepX;
+	texUVOut[4] = texUV + stepY;
 	texelPosOut = texUV * srcPixels;
 	gl_Position = POS;
 }

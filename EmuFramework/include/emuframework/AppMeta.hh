@@ -78,6 +78,7 @@ struct AppMeta
 	// NEO-Duo fills this in. Other apps return false and keep the classic layout.
 	static bool buildDuoGamepad(VController &);
 	static void layoutDuoGamepad(VController &);
+	static void refreshDuoButtonSizes(VController &);
 
 	// Cheats
 	static std::unique_ptr<View> makeEditCheatsView(ViewAttachParams, CheatsView&);

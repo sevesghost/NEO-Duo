@@ -57,6 +57,12 @@ protected:
 	TextMenuItem duoAlphaItem[4];
 	MultiChoiceMenuItem p1Alpha;
 	MultiChoiceMenuItem p2Alpha;
+	BoolMenuItem lockPlayerSizes;
+	TextMenuItem sharedSizeItem[6];
+	MultiChoiceMenuItem sharedSize;
+	TextMenuItem sharedAlphaItem[5];
+	MultiChoiceMenuItem sharedAlpha;
+	TextHeadingMenuItem modeHint;
 	TextMenuItem sizeItem[11];
 	MultiChoiceMenuItem size;
 	BoolMenuItem vibrate;

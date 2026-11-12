@@ -1,7 +1,7 @@
-/* This file is derived from MAME and is distributed under the BSD-3-Clause
- * license used by the MAME project since 2016. See the MAME license at
- * https://github.com/mamedev/mame/blob/master/COPYING and the NEO-Duo README.
- * SPDX-License-Identifier: BSD-3-Clause
+/* YM2610 interface.
+ * Copyright (C) Ernesto Corvi, originally from MAME. BSD-3-Clause.
+ * Gngeo integration Copyright (C) the Gngeo team. GPL-2.0-or-later.
+ * SPDX-License-Identifier: BSD-3-Clause AND GPL-2.0-or-later
  */
 
 /***************************************************************************

@@ -1,7 +1,8 @@
-/* This file is derived from MAME and is distributed under the BSD-3-Clause
- * license used by the MAME project since 2016. See the MAME license at
- * https://github.com/mamedev/mame/blob/master/COPYING and the NEO-Duo README.
- * SPDX-License-Identifier: BSD-3-Clause
+/* YM2610 software emulator.
+ * Copyright (C) 2001-2003 Jarek Burczynski
+ * Copyright (C) 1998 Tatsuyuki Satoh
+ * Derived from MAME's fm.cpp and ymdeltat.cpp.
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 /***************************************************************************

@@ -9,11 +9,13 @@ The app id is `com.sevesghost.neoduo` and the launcher name is **NEO-Duo**, so i
 On a fresh install the on-screen controls start in **two-player** mode, using the **Joint** layout:
 
 - One set of buttons (D-pad, A–D, turbo A–D, A+B, C+D, A+B+C, and the turbo combos) sends each press to **both** players.
-- Small per-player Coin and Start buttons sit in the corners.
-- **Separate** mode puts a blue Player 1 set on the left and a mirrored red Player 2 set on the right. An optional row of white buttons at the bottom center can drive both players at once (off by default).
+- Small per-player Coin and Start buttons sit in the top corners. Joint mode also has a white shared Select and Start at the top center.
+- **Separate** mode puts a blue Player 1 set on the left and a mirrored red Player 2 set on the right. An optional row of white buttons at the bottom center can drive both players at once (off by default) and stays at least 12 mm clear of the player buttons.
+- A Mode button at the top of the screen switches Joint and Separate when it is held for half a second. While two-player mode is on, the old single-player Virtual Gamepad Player option is greyed out.
 - Turning **One Person, Both Players** off restores the original single-player touch layout.
-- Each set has its own size and opacity. Buttons can be dragged, and **Reset Emulator Button Positions** puts the current mode back on its default anchors.
-- Layouts are stored in millimetres from the screen edges under config key `CFGKEY_VCONTROLLER_DEVICE_BUTTONS_V3` (`configId` 0 = separate, 1 = joint). Wider than 16:10 keeps the controls over the picture. 16:10 or narrower shrinks the game image and leaves a strip along the bottom.
+- Each set has its own size and opacity, including the shared buttons. Player 1 and Player 2 start at 50% opacity and the shared row at 40%. Lock P1/P2 Size keeps the two face sizes equal. Changing a size leaves dragged positions where they are. Buttons never shrink below 9 mm; a tight screen packs the gaps instead. **Reset Emulator Button Positions** puts the current mode back on its default anchors.
+- Layouts are stored in millimetres from the screen edges under config key `CFGKEY_VCONTROLLER_DEVICE_BUTTONS_V3` (`configId` 0 = separate, 1 = joint), with a separate landscape and portrait arrangement. The turbo row stays inside the bottom 40% of the screen. Wider than 16:10 keeps the controls over the picture. 16:10 or narrower shrinks the game image and leaves a strip along the bottom.
+- The game picture can be dragged anywhere on the screen from **Set Video Position**, with Smaller/Larger controls and a reset, or positioned from Video settings (horizontal offset, vertical offset, and placement scale). Landscape and portrait remember their own offsets and scale. The touch pads stay drawn above the picture.
 - Launching the app mixes with other audio (YouTube, music) instead of taking exclusive audio focus. That default is not switched back on later.
 
 BIOS and game ROMs are **not** included. You supply your own legally obtained files.
@@ -34,7 +36,10 @@ Upstream:
 - Gngeo — © the Gngeo team, GPL-2.0-or-later. The Neo Geo machine code under `NEO.emu/src/gngeo` (including `video_arm.s`) comes from that project.
 - 68000 — Musashi © Karl Stenerud, MIT. Sources are in `NEO.emu/src/musashi`.
 - Z80 — MAME's ZiLOG Z80 core, BSD-3-Clause, © Juergen Buchmueller and the MAME team. Sources and the generated `z80.hxx` are in `NEO.emu/src/z80`. Regenerate the execution loop with `python3 z80make.py z80.lst z80.hxx` from that directory if you update `z80.lst`.
-- YM2610 and Neo Geo protection (`ym2610.c`, `neocrypt.c`) are the MAME-derived implementations carried by Gngeo. They are distributed here under the BSD-3-Clause terms MAME has used since the 2016 relicensing. They were not rewritten onto ymfm; sound and decryption behavior follow the Gngeo/MAME code this tree already ran.
+- YM2610 (`ym2610.c`) is GPL-2.0-or-later, © Jarek Burczynski and Tatsuyuki Satoh, from MAME's `fm.cpp` and `ymdeltat.cpp`. The interface in `2610intf.c` is BSD-3-Clause © Ernesto Corvi plus the Gngeo GPL-2.0-or-later integration. Neo Geo protection (`neocrypt.c`) stays under MAME's BSD-3-Clause terms. None of these were rewritten onto ymfm.
+- The calendar chip in `pd4990a.c` is an original implementation. Its shift register and strobe follow MAME's BSD-3-Clause `upd1990a` device (© Curt Coder, hap, and the MAME team). The old non-commercial MAME `pd4990a` sources are not in this tree.
+- The image shaders in `EmuFramework/res/shaders` (direct, scale, and the edge-directed smoother, including the fallback variants) are original GPL-3.0-or-later code. The previous unlicensed hq2x and Scale2x shader text was replaced.
+- EmuFramework no longer builds or ships the unused Mednafen `mednafen_common` / `src/shared` sources.
 - `memcpy.S` is the NetBSD routine (BSD-style). `crypt.h` is zlib's zip code.
 
 No BIOS, ROMs, keystores, or signing passwords are in this repository.

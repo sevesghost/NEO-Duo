@@ -14,6 +14,7 @@
 	along with EmuFramework.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <imagine/config/macros.h>
+#include <imagine/time/Time.hh>
 #include <emuframework/VController.hh>
 #include <emuframework/EmuApp.hh>
 #include <emuframework/AppKeyCode.hh>
@@ -97,6 +98,7 @@ static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::Rendere
 						case softReset:
 						case hardReset:
 						case resetMenu: return app.asset(AssetID::arrow);
+						case toggleDuoLayout: return app.asset(AssetID::menu);
 					}
 					return app.asset(AssetID::more);
 				}());
@@ -145,7 +147,13 @@ void VController::setButtonSizes(int gamepadBtnSizeInPixels, int uiBtnSizeInPixe
 		else
 			setSize(elem, gamepadBtnSizeInPixels, renderer());
 	}
-	for(auto &elem : uiElements) { setSize(elem, uiBtnSizeInPixels, renderer()); }
+	for(auto &elem : uiElements)
+	{
+		if(elem.sizeMM100x && hasWindow())
+			setExactSize(elem, std::max(1, xMMSizeToPixel(window(), elem.sizeMM100x / 100.f)), renderer());
+		else
+			setSize(elem, uiBtnSizeInPixels, renderer());
+	}
 }
 
 void VController::applyButtonSize()
@@ -214,7 +222,10 @@ void VController::place()
 	}
 	for(auto &elem : uiElements)
 	{
-		elem.place(bounds, windowBounds, isPortrait);
+		if(elem.posIsMM())
+			placeElement(elem, isPortrait);
+		else
+			elem.place(bounds, windowBounds, isPortrait);
 	}
 	dragTracker.setDragStartPixels(win.widthMMInPixels(1.));
 }
@@ -297,6 +308,18 @@ bool VController::pointerInputEvent(const Input::MotionEvent &e, WindowRect game
 			{
 				if(btn.bounds().overlaps(e.pos()))
 				{
+					if(btn.key.flags.appCode && AppKeyCode(btn.key.codes[0]) == AppKeyCode::toggleDuoLayout)
+					{
+						static SteadyClockTimePoint duoModeDown{};
+						if(e.pushed())
+						{
+							duoModeDown = e.time();
+							return true;
+						}
+						if(e.released() && e.time() - duoModeDown >= Milliseconds{500})
+							setDuoLayout(duoLayout_ == DuoLayout::Joint ? DuoLayout::Separate : DuoLayout::Joint);
+						return true;
+					}
 					app().handleKeyInput(btn.key, e);
 					return true;
 				}
@@ -757,6 +780,12 @@ bool VController::readConfig(EmuApp &app, MapIO &io, unsigned key)
 			p2Size_ = io.get<int16_t>();
 			p1Alpha_ = io.get<uint8_t>();
 			p2Alpha_ = io.get<uint8_t>();
+			if(flags & 8)
+			{
+				sharedSize_ = io.get<int16_t>();
+				sharedAlpha_ = io.get<uint8_t>();
+				lockPlayerSizes_ = io.get<uint8_t>() != 0;
+			}
 			duoLayout_ = configId == 0 ? DuoLayout::Separate : DuoLayout::Joint;
 			twoPlayer_ = flags & 1;
 			showSharedRow_ = flags & 2;
@@ -888,7 +917,7 @@ void VController::writeDeviceButtonsConfig(FileIO &io) const
 void VController::writeDuoButtonsConfig(FileIO &io) const
 {
 	size_t bytes = 2; // key
-	bytes += 1 + 1 + 1 + sizeof(p1Size_) + sizeof(p2Size_) + 1 + 1 + 1;
+	bytes += 1 + 1 + 1 + sizeof(p1Size_) + sizeof(p2Size_) + 1 + 1 + sizeof(sharedSize_) + 1 + 1 + 1;
 	if(twoPlayer_)
 	{
 		for(const auto &e : gpElements)
@@ -903,12 +932,15 @@ void VController::writeDuoButtonsConfig(FileIO &io) const
 	io.put(uint16_t(CFGKEY_VCONTROLLER_DEVICE_BUTTONS_V3));
 	io.put(uint8_t(0));
 	io.put(uint8_t(duoLayout_ == DuoLayout::Separate ? 0 : 1));
-	uint8_t flags = (twoPlayer_ ? 1 : 0) | (showSharedRow_ ? 2 : 0) | (duoCustomized_ ? 4 : 0);
+	uint8_t flags = (twoPlayer_ ? 1 : 0) | (showSharedRow_ ? 2 : 0) | (duoCustomized_ ? 4 : 0) | 8;
 	io.put(flags);
 	io.put(p1Size_);
 	io.put(p2Size_);
 	io.put(p1Alpha_);
 	io.put(p2Alpha_);
+	io.put(sharedSize_);
+	io.put(sharedAlpha_);
+	io.put(uint8_t(lockPlayerSizes_ ? 1 : 0));
 	auto count = twoPlayer_ ? uint8_t(std::min(gpElements.size(), size_t(255))) : uint8_t(0);
 	io.put(count);
 	log.info("wrote duo controls ({} bytes, {} elements, twoPlayer:{})", bytes, count, twoPlayer_);
@@ -991,6 +1023,7 @@ void VController::configure(Window &win, Gfx::Renderer &renderer, const Gfx::Gly
 		};
 	}
 	setInputPlayer(0);
+	syncDuoModeButton();
 }
 
 void VController::resetEmulatedDevicePositions(std::vector<VControllerElement> &gpElements) const
@@ -1101,6 +1134,7 @@ void VController::resetUIGroups()
 {
 	log.info("setting default UI button groups");
 	uiElements = defaultUIGroups();
+	syncDuoModeButton();
 }
 
 std::vector<VControllerElement> VController::defaultUIGroups() const

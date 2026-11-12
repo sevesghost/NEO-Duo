@@ -696,8 +696,14 @@ public:
 	void setShowSharedFaceRow(bool on);
 	int playerFaceSizeMM100x(int player) const { return player ? p2Size_ : p1Size_; }
 	void setPlayerFaceSizeMM100x(int player, int mm100x);
+	int sharedFaceSizeMM100x() const { return sharedSize_; }
+	void setSharedFaceSizeMM100x(int mm100x);
 	int playerOpacity(int player) const { return player ? p2Alpha_ : p1Alpha_; }
 	void setPlayerOpacity(int player, uint8_t alpha);
+	int sharedOpacity() const { return sharedAlpha_; }
+	void setSharedOpacity(uint8_t alpha);
+	bool lockPlayerSizes() const { return lockPlayerSizes_; }
+	void setLockPlayerSizes(bool on);
 	int activeGamepadLayoutIndex() const;
 	int videoBottomInsetPx() const;
 	bool duoPositionsCustomized() const { return duoCustomized_; }
@@ -705,7 +711,8 @@ public:
 	VControllerElement &addDuoButton(KeyInfo key, int16_t sizeMM100x, uint8_t playerSet, uint8_t role);
 	VControllerElement &addDuoDPad(std::span<const KeyInfo, 4> keys, int16_t sizeMM100x, uint8_t playerSet, uint8_t role);
 	void setDuoPosition(VControllerElement &elem, int layoutIdx, _2DOrigin origin, float xMm, float yMm);
-	void setVideoBottomInsetMM(float mm) { bottomInsetMM_ = mm; }
+	void setVideoBottomInsetMM(int layout, float mm);
+	void syncDuoModeButton();
 	void rebuildDuoIfNeeded();
 
 private:
@@ -735,9 +742,12 @@ private:
 	bool duoV3Loaded_{};
 	int16_t p1Size_{1000};
 	int16_t p2Size_{1000};
-	uint8_t p1Alpha_{};
-	uint8_t p2Alpha_{};
-	float bottomInsetMM_{48.f};
+	int16_t sharedSize_{1000};
+	uint8_t p1Alpha_{uint8_t(255 * .5f)};
+	uint8_t p2Alpha_{uint8_t(255 * .5f)};
+	uint8_t sharedAlpha_{uint8_t(255 * .4f)};
+	bool lockPlayerSizes_{};
+	float bottomInsetMM_[2]{};
 	bool physicalControlsPresent{};
 	bool gamepadIsVisible{gamepadControlsVisibility_ != VControllerVisibility::OFF};
 	VControllerGamepadFlags gamepadDisabledFlags{};

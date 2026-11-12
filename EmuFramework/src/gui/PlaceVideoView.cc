@@ -25,7 +25,9 @@ PlaceVideoView::PlaceVideoView(ViewAttachParams attach, EmuVideoLayer &layer, VC
 	vController{vController},
 	exitText{attach.rendererTask, "Exit", &defaultFace()},
 	resetText{attach.rendererTask, "Reset", &defaultFace()},
-	quads{attach.rendererTask, {.size = 4}}
+	smallerText{attach.rendererTask, "Smaller", &defaultFace()},
+	largerText{attach.rendererTask, "Larger", &defaultFace()},
+	quads{attach.rendererTask, {.size = 6}}
 {
 	app().applyOSNavStyle(appContext(), true);
 	layer.setBrightnessScale(1.f);
@@ -39,17 +41,24 @@ PlaceVideoView::~PlaceVideoView()
 
 void PlaceVideoView::place()
 {
-	auto offsetLimit = viewRect().size() - layer.contentRect().size();
-	posOffsetLimit = viewRect().isLandscape() ? offsetLimit.x : offsetLimit.y;
 	dragState = {};
 	exitText.compile();
 	resetText.compile();
+	smallerText.compile();
+	largerText.compile();
 	WRect btnBounds{{0, 0}, {viewRect().xSize(), exitText.nominalHeight() * 2}};
 	btnBounds.setPos(viewRect().pos(LB2DO), LB2DO);
+	int quarter = viewRect().xSize() / 4;
 	exitBounds = btnBounds;
-	exitBounds.x2 = viewRect().xSize() / 2;
+	exitBounds.x2 = quarter;
 	resetBounds = btnBounds;
-	resetBounds.x = viewRect().xSize() / 2;
+	resetBounds.x = quarter;
+	resetBounds.x2 = quarter * 2;
+	smallerBounds = btnBounds;
+	smallerBounds.x = quarter * 2;
+	smallerBounds.x2 = quarter * 3;
+	largerBounds = btnBounds;
+	largerBounds.x = quarter * 3;
 	const int lineSize = 1;
 	using Quad = decltype(quads)::Type;
 	auto map = quads.map();
@@ -59,6 +68,8 @@ void PlaceVideoView::place()
 		{viewRect().xCenter() + lineSize, viewRect().y2}}.as<int16_t>()}}.write(map, 1);
 	Quad{{.bounds = exitBounds.as<int16_t>()}}.write(map, 2);
 	Quad{{.bounds = resetBounds.as<int16_t>()}}.write(map, 3);
+	Quad{{.bounds = smallerBounds.as<int16_t>()}}.write(map, 4);
+	Quad{{.bounds = largerBounds.as<int16_t>()}}.write(map, 5);
 }
 
 bool PlaceVideoView::inputEvent(const Input::Event& e, ViewInputEventParams)
@@ -67,29 +78,31 @@ bool PlaceVideoView::inputEvent(const Input::Event& e, ViewInputEventParams)
 	{
 		[&](const Input::KeyEvent &e)
 		{
-			if(e.pushed(Input::DefaultKey::UP) && viewRect().isPortrait())
+			int x = landscapePlacement() ? layer.landscapeOffset : layer.portraitOffsetX;
+			int y = landscapePlacement() ? layer.landscapeOffsetY : layer.portraitOffset;
+			if(e.pushed(Input::DefaultKey::LEFT))
 			{
-				updateVideo(layer.portraitOffset - 1);
+				updateVideo(x - 1, y);
 				return true;
 			}
-			else if(e.pushed(Input::DefaultKey::DOWN) && viewRect().isPortrait())
+			else if(e.pushed(Input::DefaultKey::RIGHT))
 			{
-				updateVideo(layer.portraitOffset + 1);
+				updateVideo(x + 1, y);
 				return true;
 			}
-			else if(e.pushed(Input::DefaultKey::LEFT) && viewRect().isLandscape())
+			else if(e.pushed(Input::DefaultKey::UP))
 			{
-				updateVideo(layer.landscapeOffset - 1);
+				updateVideo(x, y - 1);
 				return true;
 			}
-			else if(e.pushed(Input::DefaultKey::RIGHT) && viewRect().isLandscape())
+			else if(e.pushed(Input::DefaultKey::DOWN))
 			{
-				updateVideo(layer.landscapeOffset + 1);
+				updateVideo(x, y + 1);
 				return true;
 			}
 			else if(e.pushed(Input::DefaultKey::CONFIRM))
 			{
-				updateVideo(0); // reset to default
+				resetPlacement();
 				return true;
 			}
 			else if(e.pushed(Input::DefaultKey::CANCEL))
@@ -106,10 +119,13 @@ bool PlaceVideoView::inputEvent(const Input::Event& e, ViewInputEventParams)
 			{
 				case Input::Action::PUSHED:
 				{
-					if(!dragState.isTracking() && !exitBounds.overlaps(e.pos()) && !resetBounds.overlaps(e.pos()))
+					bool onButton = exitBounds.overlaps(e.pos()) || resetBounds.overlaps(e.pos())
+						|| smallerBounds.overlaps(e.pos()) || largerBounds.overlaps(e.pos());
+					if(!dragState.isTracking() && !onButton)
 					{
 						dragState.start(id, e.pos());
-						startPosOffset = viewRect().isLandscape() ? layer.landscapeOffset : layer.portraitOffset;
+						startOffsetX = landscapePlacement() ? layer.landscapeOffset : layer.portraitOffsetX;
+						startOffsetY = landscapePlacement() ? layer.landscapeOffsetY : layer.portraitOffset;
 					}
 					break;
 				}
@@ -118,8 +134,7 @@ bool PlaceVideoView::inputEvent(const Input::Event& e, ViewInputEventParams)
 					if(dragState.isTracking(id))
 					{
 						dragState.update(e.pos(), 0);
-						updateVideo(viewRect().isLandscape() ? startPosOffset + dragState.downPosDiff().x
-							: startPosOffset + dragState.downPosDiff().y);
+						updateVideo(startOffsetX + dragState.downPosDiff().x, startOffsetY + dragState.downPosDiff().y);
 					}
 					break;
 				}
@@ -138,7 +153,17 @@ bool PlaceVideoView::inputEvent(const Input::Event& e, ViewInputEventParams)
 						}
 						else if(resetBounds.overlaps(e.pos()))
 						{
-							updateVideo(0);
+							resetPlacement();
+						}
+						else if(smallerBounds.overlaps(e.pos()))
+						{
+							int scale = landscapePlacement() ? layer.landscapePlaceScale : layer.portraitPlaceScale;
+							updateScale(scale - 10);
+						}
+						else if(largerBounds.overlaps(e.pos()))
+						{
+							int scale = landscapePlacement() ? layer.landscapePlaceScale : layer.portraitPlaceScale;
+							updateScale(scale + 10);
 						}
 					}
 					break;
@@ -161,23 +186,64 @@ void PlaceVideoView::draw(Gfx::RendererCommands&__restrict__ cmds, ViewDrawParam
 	cmds.setVertexArray(quads);
 	cmds.drawQuads(0, 2); // centering lines
 	cmds.setColor({.2, .2, .2, .5});
-	cmds.drawQuads(2, 2); // button bg
+	cmds.drawQuads(2, 4); // button bg
 	basicEffect.enableAlphaTexture(cmds);
 	cmds.setColor(ColorName::WHITE);
 	exitText.draw(cmds, exitBounds.pos(C2DO), C2DO);
 	resetText.draw(cmds, resetBounds.pos(C2DO), C2DO);
+	smallerText.draw(cmds, smallerBounds.pos(C2DO), C2DO);
+	largerText.draw(cmds, largerBounds.pos(C2DO), C2DO);
 }
 
-void PlaceVideoView::updateVideo(int offset)
+bool PlaceVideoView::landscapePlacement() const
 {
-	if(viewRect().isLandscape())
+	return viewRect().isLandscape();
+}
+
+void PlaceVideoView::updateVideo(int x, int y)
+{
+	int limitX = std::min(16000, std::max(1, viewRect().xSize()));
+	int limitY = std::min(16000, std::max(1, viewRect().ySize()));
+	x = std::clamp(x, -limitX, limitX);
+	y = std::clamp(y, -limitY, limitY);
+	if(landscapePlacement())
 	{
-		layer.landscapeOffset = std::clamp(offset, -posOffsetLimit / 2, posOffsetLimit / 2);
+		layer.landscapeOffset = int16_t(x);
+		layer.landscapeOffsetY = int16_t(y);
 	}
 	else
 	{
-		int uiElementHeight = app().viewController().inputView.uiElementHeight();
-		layer.portraitOffset = std::clamp(offset, -uiElementHeight, posOffsetLimit - uiElementHeight);
+		layer.portraitOffsetX = int16_t(x);
+		layer.portraitOffset = int16_t(y);
+	}
+	app().viewController().placeEmuViews();
+	app().viewController().postDrawToEmuWindows();
+}
+
+void PlaceVideoView::updateScale(int scale)
+{
+	scale = std::clamp(scale, 25, 300);
+	if(landscapePlacement())
+		layer.landscapePlaceScale = int16_t(scale);
+	else
+		layer.portraitPlaceScale = int16_t(scale);
+	app().viewController().placeEmuViews();
+	app().viewController().postDrawToEmuWindows();
+}
+
+void PlaceVideoView::resetPlacement()
+{
+	if(landscapePlacement())
+	{
+		layer.landscapeOffset = 0;
+		layer.landscapeOffsetY = 0;
+		layer.landscapePlaceScale = 100;
+	}
+	else
+	{
+		layer.portraitOffsetX = 0;
+		layer.portraitOffset = 0;
+		layer.portraitPlaceScale = 100;
 	}
 	app().viewController().placeEmuViews();
 	app().viewController().postDrawToEmuWindows();

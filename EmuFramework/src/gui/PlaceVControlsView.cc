@@ -150,7 +150,8 @@ bool PlaceVControlsView::inputEvent(const Input::Event& e, ViewInputEventParams)
 							layoutPos.pos.x = int16_t(std::lround(layoutPos.pos.x / xPerMM * 10.f));
 							layoutPos.pos.y = int16_t(std::lround(layoutPos.pos.y / yPerMM * 10.f));
 							elemLayout = vController.activeGamepadLayoutIndex();
-							vController.noteDuoDrag();
+							if(d.elem->duoRole != 255)
+								vController.noteDuoDrag();
 						}
 						auto &vCtrlLayoutPos = d.elem->layoutPos[elemLayout];
 						vCtrlLayoutPos.origin = layoutPos.origin;

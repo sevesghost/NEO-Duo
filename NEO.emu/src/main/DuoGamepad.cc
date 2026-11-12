@@ -31,7 +31,8 @@ enum Role : uint8_t
 	P2AB, P2CD, P2ABC,
 	P2TAB, P2TCD, P2TABC,
 	P2Coin, P2Start,
-	BothA = 64, BothB, BothC, BothD
+	BothA = 64, BothB, BothC, BothD,
+	BothSelect, BothStart
 };
 
 KeyInfo faceKey(NeoKey code, int player, bool both, bool turbo)
@@ -83,57 +84,91 @@ void put(VController &v, VControllerElement &elem, int layout, float canvasW, fl
 	v.setDuoPosition(elem, layout, LB2DO, xFromLeft, yFromTop - canvasH);
 }
 
-float fitScale(float b1, float b2, float canvasW, bool joint)
+struct Pack
 {
-	auto needed = [&](float scale)
+	float b1, b2, shared, gap, margin;
+};
+
+Pack packSizes(const VController &v, float canvasW, bool joint)
+{
+	// Buttons never go below 9 mm. When the row is wider than the screen,
+	// close the gaps and then the edge margin.
+	float b1 = std::max(9.f, v.playerFaceSizeMM100x(0) / 100.f);
+	float b2 = std::max(9.f, v.playerFaceSizeMM100x(1) / 100.f);
+	float shared = std::max(9.f, v.sharedFaceSizeMM100x() / 100.f);
+	float gap = 2.f;
+	float margin = 5.f;
+	auto needed = [&](float m, float g)
 	{
-		constexpr float margin = 5.f, gap = 2.f;
-		float B1 = b1 * scale, B2 = joint ? B1 : b2 * scale;
 		if(joint)
-		{
-			float left = margin + B1 * 2.f;
-			float right = margin + 4.f * B1 + 3.f * gap;
-			return left + right + gap;
-		}
-		auto cluster = [](float b, float gap) { return b * 2.f + gap + 4.f * b + 3.f * gap; };
-		return margin + cluster(B1, gap) + gap + cluster(B2, gap) + margin;
+			return m + b1 * 2.f + g + 4.f * b1 + 3.f * g + m;
+		float left = b1 * 2.f + g + 4.f * b1 + 3.f * g;
+		float right = b2 * 2.f + g + 4.f * b2 + 3.f * g;
+		return m + left + g + right + m;
 	};
-	float scale = 1.f;
-	if(needed(1.f) <= canvasW)
-		return 1.f;
-	while(scale > 0.45f && needed(scale) > canvasW)
-		scale -= 0.05f;
-	return scale;
+	while(gap > 0.f && needed(margin, gap) > canvasW)
+		gap = std::max(0.f, gap - 0.25f);
+	while(margin > 0.f && needed(margin, gap) > canvasW)
+		margin = std::max(0.f, margin - 0.5f);
+	return {b1, b2, shared, gap, margin};
+}
+
+void assignSizes(VController &v, const Pack &p)
+{
+	for(auto &elem : v.deviceElements())
+	{
+		if(elem.duoRole == 255)
+			continue;
+		float face = elem.playerSet() == 1 ? p.b2 : elem.playerSet() == 2 ? p.shared : p.b1;
+		bool dpad = elem.dPad() != nullptr;
+		uint8_t role = elem.duoRole;
+		bool coin = role == P1Coin || role == P1Start || role == P2Coin || role == P2Start;
+		float size = coin ? 9.f : dpad ? face * 2.f : face;
+		if(size < 9.f)
+			size = 9.f;
+		elem.sizeMM100x = int16_t(std::lround(size * 100.f));
+	}
+}
+
+struct Rows
+{
+	float ad, turbo, combo, tcombo;
+};
+
+// adFromBottom is the A–D center. Turbo sits 10.8 mm above that (9 mm -> 19.8 mm
+// at the default size). Combo rows are pulled down so they stay inside the
+// bottom 40% of the screen, and they stay at or above the turbo row.
+Rows makeRows(float btn, float gap, float ceiling, float adFromBottom)
+{
+	float half = btn * 0.5f;
+	if(adFromBottom < half)
+		adFromBottom = half;
+	float turbo = adFromBottom + 10.8f;
+	if(turbo + half > ceiling && ceiling - half >= adFromBottom)
+		turbo = ceiling - half;
+	float combo = turbo + btn + gap;
+	float tcombo = combo + btn + gap;
+	if(tcombo + half > ceiling)
+	{
+		tcombo = std::max(turbo, ceiling - half);
+		combo = tcombo - btn - gap;
+		if(combo < turbo)
+			combo = turbo;
+		if(combo + half > ceiling)
+			combo = tcombo;
+	}
+	return {adFromBottom, turbo, combo, tcombo};
 }
 
 void layoutCanvas(VController &v, int layout, float W, float H, bool wide)
 {
 	const bool joint = v.duoLayout() == DuoLayout::Joint;
 	const bool shared = !joint && v.showSharedFaceRow();
-	constexpr float margin = 5.f, gap = 2.f;
-	float b1 = std::max(9.f, v.playerFaceSizeMM100x(0) / 100.f);
-	float b2 = std::max(9.f, v.playerFaceSizeMM100x(1) / 100.f);
-	float scale = fitScale(b1, b2, W, joint);
-	b1 *= scale;
-	b2 *= scale;
-	b1 = std::max(b1, 7.f);
-	b2 = std::max(b2, 7.f);
-	auto faceOf = [&](const VControllerElement &elem)
-	{
-		if(elem.playerSet() == 1)
-			return b2;
-		return b1;
-	};
-	for(auto &elem : v.deviceElements())
-	{
-		if(elem.duoRole == 255)
-			continue;
-		float face = faceOf(elem);
-		bool dpad = elem.dPad() != nullptr;
-		bool coin = elem.duoRole == P1Coin || elem.duoRole == P1Start || elem.duoRole == P2Coin || elem.duoRole == P2Start;
-		float size = coin ? std::min(9.f, face) : dpad ? face * 2.f : face;
-		elem.sizeMM100x = int16_t(std::lround(size * 100.f));
-	}
+	Pack p = packSizes(v, W, joint);
+	assignSizes(v, p);
+	float b1 = p.b1, b2 = p.b2, gap = p.gap, margin = p.margin;
+	float coin = 9.f;
+	float ceiling = 0.4f * H;
 
 	auto findRole = [&](uint8_t role) -> VControllerElement *
 	{
@@ -148,187 +183,96 @@ void layoutCanvas(VController &v, int layout, float W, float H, bool wide)
 			put(v, *elem, layout, W, H, x, y);
 	};
 
-	float mid = H * 0.5f;
-	float row = 0.f;
-	auto placeCluster = [&](int baseRole, float leftX, float dpadSize, float btn, float bottomY, bool fromBottom)
+	auto placeRows = [&](int base, float buttonsLeft, float btn, const Rows &rows, bool mirror)
 	{
-		float dpadX = leftX + dpadSize * 0.5f;
-		float dpadY = fromBottom ? bottomY + btn * 0.5f - dpadSize * 0.5f : mid;
-		placeRole(baseRole + P1Dpad, dpadX, dpadY);
-		float buttonsLeft = leftX + dpadSize + gap;
-		float adY = fromBottom ? bottomY : mid + (btn + gap);
-		float turboY = adY - btn - gap;
-		float comboY = turboY - btn - gap;
-		row = btn + gap;
 		for(int i = 0; i < 4; i++)
 		{
 			float x = buttonsLeft + btn * 0.5f + i * (btn + gap);
-			placeRole(baseRole + P1A + i, x, adY);
-			placeRole(baseRole + P1TA + i, x, turboY);
+			int src = mirror ? 3 - i : i;
+			placeRole(base + P1A + src, x, H - rows.ad);
+			placeRole(base + P1TA + src, x, H - rows.turbo);
 		}
 		float faceW = 4.f * btn + 3.f * gap;
 		float comboW = 3.f * btn + 2.f * gap;
 		float comboLeft = buttonsLeft + (faceW - comboW) * 0.5f;
-		placeRole(baseRole + P1AB, comboLeft + btn * 0.5f, comboY);
-		placeRole(baseRole + P1CD, comboLeft + btn * 0.5f + btn + gap, comboY);
-		placeRole(baseRole + P1ABC, comboLeft + btn * 0.5f + 2.f * (btn + gap), comboY);
-		placeRole(baseRole + P1TAB, comboLeft + btn * 0.5f, comboY - btn - gap);
-		placeRole(baseRole + P1TCD, comboLeft + btn * 0.5f + btn + gap, comboY - btn - gap);
-		placeRole(baseRole + P1TABC, comboLeft + btn * 0.5f + 2.f * (btn + gap), comboY - btn - gap);
-		float coin = std::min(9.f, btn);
-		float coinY = fromBottom
-			? std::min(comboY - btn - gap, dpadY - dpadSize * 0.5f) - gap - coin * 0.5f
-			: dpadY + dpadSize * 0.5f + gap + coin * 0.5f;
-		if(!fromBottom && coinY + coin * 0.5f > H - margin)
-			coinY = dpadY - dpadSize * 0.5f - gap - coin * 0.5f;
-		float coinX = leftX + coin * 0.5f;
-		// P2's cluster is mirrored, so its "left" is actually the right edge of the cluster.
-		bool mirrored = baseRole == P2Base;
-		if(mirrored)
+		auto comboX = [&](int slot) { return comboLeft + btn * 0.5f + slot * (btn + gap); };
+		if(!mirror)
 		{
-			coinX = leftX + dpadSize + gap + faceW - coin * 0.5f;
-			placeRole(P2Coin, coinX, coinY);
-			placeRole(P2Start, coinX - coin - gap, coinY);
+			placeRole(base + P1AB, comboX(0), H - rows.combo);
+			placeRole(base + P1CD, comboX(1), H - rows.combo);
+			placeRole(base + P1ABC, comboX(2), H - rows.combo);
+			placeRole(base + P1TAB, comboX(0), H - rows.tcombo);
+			placeRole(base + P1TCD, comboX(1), H - rows.tcombo);
+			placeRole(base + P1TABC, comboX(2), H - rows.tcombo);
 		}
 		else
 		{
-			placeRole(P1Coin, coinX, coinY);
-			placeRole(P1Start, coinX + coin + gap, coinY);
+			placeRole(base + P1ABC, comboX(0), H - rows.combo);
+			placeRole(base + P1CD, comboX(1), H - rows.combo);
+			placeRole(base + P1AB, comboX(2), H - rows.combo);
+			placeRole(base + P1TABC, comboX(0), H - rows.tcombo);
+			placeRole(base + P1TCD, comboX(1), H - rows.tcombo);
+			placeRole(base + P1TAB, comboX(2), H - rows.tcombo);
 		}
-		(void)row;
 	};
 
+	float topY = margin + coin * 0.5f;
+	placeRole(P1Coin, margin + coin * 0.5f, topY);
+	placeRole(P1Start, margin + coin * 1.5f + gap, topY);
+	placeRole(P2Coin, W - margin - coin * 1.5f - gap, topY);
+	placeRole(P2Start, W - margin - coin * 0.5f, topY);
+
+	float clusterTop = 0.f;
 	if(joint)
 	{
-		float btn = b1;
-		float dpad = btn * 2.f;
-		if(wide)
-		{
-			placeCluster(0, margin, dpad, btn, 0, false);
-			// Move the button cluster to the right edge. placeCluster anchored it on the left;
-			// re-place the face/turbo/combo rows on the right, leaving the dpad where it is.
-			float faceW = 4.f * btn + 3.f * gap;
-			float buttonsLeft = W - margin - faceW;
-			float adY = mid + btn + gap;
-			float turboY = mid;
-			float comboY = mid - (btn + gap);
-			for(int i = 0; i < 4; i++)
-			{
-				float x = buttonsLeft + btn * 0.5f + i * (btn + gap);
-				placeRole(P1A + i, x, adY);
-				placeRole(P1TA + i, x, turboY);
-			}
-			float comboW = 3.f * btn + 2.f * gap;
-			float comboLeft = buttonsLeft + (faceW - comboW) * 0.5f;
-			placeRole(P1AB, comboLeft + btn * 0.5f, comboY);
-			placeRole(P1CD, comboLeft + btn * 0.5f + btn + gap, comboY);
-			placeRole(P1ABC, comboLeft + btn * 0.5f + 2.f * (btn + gap), comboY);
-			placeRole(P1TAB, comboLeft + btn * 0.5f, comboY - btn - gap);
-			placeRole(P1TCD, comboLeft + btn * 0.5f + btn + gap, comboY - btn - gap);
-			placeRole(P1TABC, comboLeft + btn * 0.5f + 2.f * (btn + gap), comboY - btn - gap);
-			float coin = std::min(9.f, btn);
-			placeRole(P1Coin, margin + coin * 0.5f, margin + coin * 0.5f);
-			placeRole(P1Start, margin + coin * 1.5f + gap, margin + coin * 0.5f);
-			placeRole(P2Coin, W - margin - coin * 0.5f, margin + coin * 0.5f);
-			placeRole(P2Start, W - margin - coin * 1.5f - gap, margin + coin * 0.5f);
-			v.setVideoBottomInsetMM(0);
-		}
-		else
-		{
-			float bottom = H - margin - btn * 0.5f;
-			placeCluster(0, margin, dpad, btn, bottom, true);
-			float faceW = 4.f * btn + 3.f * gap;
-			float buttonsLeft = W - margin - faceW;
-			float adY = bottom;
-			float turboY = adY - btn - gap;
-			float comboY = turboY - btn - gap;
-			for(int i = 0; i < 4; i++)
-			{
-				float x = buttonsLeft + btn * 0.5f + i * (btn + gap);
-				placeRole(P1A + i, x, adY);
-				placeRole(P1TA + i, x, turboY);
-			}
-			float comboW = 3.f * btn + 2.f * gap;
-			float comboLeft = buttonsLeft + (faceW - comboW) * 0.5f;
-			placeRole(P1AB, comboLeft + btn * 0.5f, comboY);
-			placeRole(P1CD, comboLeft + btn * 0.5f + btn + gap, comboY);
-			placeRole(P1ABC, comboLeft + btn * 0.5f + 2.f * (btn + gap), comboY);
-			placeRole(P1TAB, comboLeft + btn * 0.5f, comboY - btn - gap);
-			placeRole(P1TCD, comboLeft + btn * 0.5f + btn + gap, comboY - btn - gap);
-			placeRole(P1TABC, comboLeft + btn * 0.5f + 2.f * (btn + gap), comboY - btn - gap);
-			float coin = std::min(9.f, btn);
-			float coinY = comboY - (btn + gap) - gap - coin * 0.5f;
-			placeRole(P1Coin, margin + coin * 0.5f, coinY);
-			placeRole(P1Start, margin + coin * 1.5f + gap, coinY);
-			placeRole(P2Coin, W - margin - coin * 0.5f, coinY);
-			placeRole(P2Start, W - margin - coin * 1.5f - gap, coinY);
-			float stripTop = coinY - coin * 0.5f - margin;
-			v.setVideoBottomInsetMM(std::max(0.f, H - stripTop));
-		}
-		return;
-	}
-
-	// Separate: P1 on the left, P2 mirrored on the right.
-	float bottom = wide ? 0.f : H - margin - (shared ? (b1 + gap + b1 * 0.5f) : b1 * 0.5f);
-	float p1Left = margin;
-	float p2RightEdge = W - margin;
-	float d1 = b1 * 2.f, d2 = b2 * 2.f;
-	float p2Left = p2RightEdge - (d2 + gap + 4.f * b2 + 3.f * gap);
-	if(shared)
-	{
-		float total = 4.f * b1 + 3.f * gap;
-		float x0 = (W - total) * 0.5f + b1 * 0.5f;
-		float y = H - margin - b1 * 0.5f;
-		placeRole(BothA, x0, y);
-		placeRole(BothB, x0 + b1 + gap, y);
-		placeRole(BothC, x0 + 2.f * (b1 + gap), y);
-		placeRole(BothD, x0 + 3.f * (b1 + gap), y);
-	}
-	placeCluster(0, p1Left, d1, b1, bottom, !wide);
-	// P2 is mirrored: dpad on the far right, buttons to its left.
-	{
-		float btn = b2;
-		float dpad = d2;
-		float faceW = 4.f * btn + 3.f * gap;
-		float buttonsLeft = p2Left;
-		float dpadX = p2RightEdge - dpad * 0.5f;
-		float adY = wide ? mid + btn + gap : bottom;
-		float dpadY = wide ? mid : adY + btn * 0.5f - dpad * 0.5f;
-		placeRole(P2Dpad, dpadX, dpadY);
-		float turboY = adY - btn - gap;
-		float comboY = turboY - btn - gap;
-		// A sits closest to the dpad, so the row runs D C B A from left to right.
-		for(int i = 0; i < 4; i++)
-		{
-			float x = buttonsLeft + btn * 0.5f + i * (btn + gap);
-			int src = 3 - i;
-			placeRole(P2A + src, x, adY);
-			placeRole(P2TA + src, x, turboY);
-		}
-		float comboW = 3.f * btn + 2.f * gap;
-		float comboLeft = buttonsLeft + (faceW - comboW) * 0.5f;
-		placeRole(P2ABC, comboLeft + btn * 0.5f, comboY);
-		placeRole(P2CD, comboLeft + btn * 0.5f + btn + gap, comboY);
-		placeRole(P2AB, comboLeft + btn * 0.5f + 2.f * (btn + gap), comboY);
-		placeRole(P2TABC, comboLeft + btn * 0.5f, comboY - btn - gap);
-		placeRole(P2TCD, comboLeft + btn * 0.5f + btn + gap, comboY - btn - gap);
-		placeRole(P2TAB, comboLeft + btn * 0.5f + 2.f * (btn + gap), comboY - btn - gap);
-		float coin = std::min(9.f, btn);
-		float coinY = wide ? dpadY - dpad * 0.5f - gap - coin * 0.5f
-			: std::min(comboY - btn - gap, dpadY - dpad * 0.5f) - gap - coin * 0.5f;
-		placeRole(P2Start, p2RightEdge - coin * 0.5f, coinY);
-		placeRole(P2Coin, p2RightEdge - coin * 1.5f - gap, coinY);
-	}
-	if(!wide)
-	{
-		float coin = std::min(9.f, std::max(b1, b2));
-		float highest = bottom - (b1 + gap) * 3.f - gap - coin;
-		v.setVideoBottomInsetMM(std::max(32.f, H - (highest - margin)));
+		float dpad = b1 * 2.f;
+		float dpadX = margin + dpad * 0.5f;
+		float dpadFromBottom = margin + dpad * 0.5f;
+		placeRole(P1Dpad, dpadX, H - dpadFromBottom);
+		float faceLeft = dpadX + dpad * 0.5f + gap;
+		Rows rows = makeRows(b1, gap, ceiling, std::max(9.f, b1 * 0.5f));
+		placeRows(0, faceLeft, b1, rows, false);
+		float pair = coin + gap;
+		placeRole(BothSelect, W * 0.5f - pair * 0.5f, topY);
+		placeRole(BothStart, W * 0.5f + pair * 0.5f, topY);
+		clusterTop = std::max(dpadFromBottom + dpad * 0.5f, rows.tcombo + b1 * 0.5f);
 	}
 	else
 	{
-		v.setVideoBottomInsetMM(0);
+		float sharedFromBottom = margin + p.shared * 0.5f;
+		float ad1 = std::max(9.f, b1 * 0.5f);
+		float ad2 = std::max(9.f, b2 * 0.5f);
+		if(shared)
+		{
+			ad1 = sharedFromBottom + p.shared * 0.5f + 12.f + b1 * 0.5f;
+			ad2 = sharedFromBottom + p.shared * 0.5f + 12.f + b2 * 0.5f;
+			float total = 4.f * p.shared + 3.f * gap;
+			float x0 = (W - total) * 0.5f + p.shared * 0.5f;
+			float y = H - sharedFromBottom;
+			placeRole(BothA, x0, y);
+			placeRole(BothB, x0 + (p.shared + gap), y);
+			placeRole(BothC, x0 + 2.f * (p.shared + gap), y);
+			placeRole(BothD, x0 + 3.f * (p.shared + gap), y);
+			clusterTop = sharedFromBottom + p.shared * 0.5f;
+		}
+		float d1 = b1 * 2.f;
+		float d2 = b2 * 2.f;
+		float dpadFromBottom1 = margin + d1 * 0.5f;
+		float dpadFromBottom2 = margin + d2 * 0.5f;
+		float dpadX1 = margin + d1 * 0.5f;
+		placeRole(P1Dpad, dpadX1, H - dpadFromBottom1);
+		Rows rows1 = makeRows(b1, gap, ceiling, ad1);
+		placeRows(0, dpadX1 + d1 * 0.5f + gap, b1, rows1, false);
+		float dpadX2 = W - margin - d2 * 0.5f;
+		float faceW2 = 4.f * b2 + 3.f * gap;
+		float buttonsLeft2 = dpadX2 - d2 * 0.5f - gap - faceW2;
+		placeRole(P2Dpad, dpadX2, H - dpadFromBottom2);
+		Rows rows2 = makeRows(b2, gap, ceiling, ad2);
+		placeRows(P2Base, buttonsLeft2, b2, rows2, true);
+		clusterTop = std::max(clusterTop, std::max(dpadFromBottom1 + d1 * 0.5f, rows1.tcombo + b1 * 0.5f));
+		clusterTop = std::max(clusterTop, std::max(dpadFromBottom2 + d2 * 0.5f, rows2.tcombo + b2 * 0.5f));
 	}
+	v.setVideoBottomInsetMM(layout, wide ? 0.f : clusterTop + 2.f);
 }
 
 void addFaceSet(VController &v, int player, bool both, int baseRole)
@@ -365,9 +309,11 @@ bool AppMeta::buildDuoGamepad(VController &v)
 	if(joint)
 	{
 		addFaceSet(v, 0, true, 0);
-		// Per-player coin/start in the corners. addFaceSet already added P1's.
+		// Per-player coin/start stay in the corners. Shared Select/Start sit at top center.
 		v.addDuoButton(faceKey(NeoKey::Select, 1, false, false), 900, 1, P2Coin);
 		v.addDuoButton(faceKey(NeoKey::Start, 1, false, false), 900, 1, P2Start);
+		v.addDuoButton(faceKey(NeoKey::Select, 0, true, false), 900, 2, BothSelect);
+		v.addDuoButton(faceKey(NeoKey::Start, 0, true, false), 900, 2, BothStart);
 	}
 	else
 	{
@@ -392,19 +338,19 @@ void AppMeta::layoutDuoGamepad(VController &v)
 		return;
 	float w = std::max(1.f, canvasWidthMM(v.window()));
 	float h = std::max(1.f, canvasHeightMM(v.window()));
-	float longMM = std::max(w, h);
-	float shortMM = std::min(w, h);
-	// Layout 0 is the wide (wider than 16:10) arrangement. Layout 1 is the
-	// narrow arrangement, including portrait, where the game image leaves a strip.
-	layoutCanvas(v, 0, longMM, shortMM, true);
-	float narrowW = shortMM;
-	float narrowH = longMM;
-	if(longMM / shortMM <= 1.6f)
-	{
-		narrowW = longMM;
-		narrowH = shortMM;
-	}
-	layoutCanvas(v, 1, narrowW, narrowH, false);
+	bool portraitNow = h > w;
+	float landW = portraitNow ? h : w;
+	float landH = portraitNow ? w : h;
+	// Index 0 is landscape. Index 1 is portrait, computed from the swapped edges
+	// so a rotated tablet does not reuse the landscape anchors.
+	layoutCanvas(v, 0, landW, landH, (landW / landH) > 1.6f);
+	layoutCanvas(v, 1, landH, landW, false);
+}
+
+void AppMeta::refreshDuoButtonSizes(VController &v)
+{
+	Pack p = packSizes(v, 10000.f, v.duoLayout() == DuoLayout::Joint);
+	assignSizes(v, p);
 }
 
 }

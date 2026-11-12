@@ -212,6 +212,8 @@ bool InputManager::handleAppActionKeyInput(EmuApp& app, InputAction action, cons
 			viewController.pushAndShowModal(resetAlertView(app.attachParams(), app), srcEvent, false);
 		}
 		break;
+		case toggleDuoLayout:
+			break;
 	}
 	return false;
 }
@@ -716,6 +718,7 @@ std::string_view toString(AppKeyCode code)
 		case AppKeyCode::softReset: return "Soft Reset";
 		case AppKeyCode::hardReset: return "Hard Reset";
 		case AppKeyCode::resetMenu: return "Open Reset Menu";
+		case AppKeyCode::toggleDuoLayout: return "Toggle Control Layout";
 	};
 	return "";
 }
