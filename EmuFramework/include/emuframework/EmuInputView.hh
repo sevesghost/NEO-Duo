@@ -44,6 +44,7 @@ public:
 	VController *activeVController() const { return vController; }
 	void setSystemGestureExclusion(bool on);
 	int uiElementHeight() const;
+	int reservedVideoBottomPx() const;
 
 private:
 	VController *vController{};

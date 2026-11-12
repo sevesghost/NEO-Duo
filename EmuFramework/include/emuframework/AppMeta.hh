@@ -33,6 +33,7 @@ namespace EmuEx
 class CheatsView;
 class Cheat;
 class BaseEditCheatsView;
+class VController;
 struct AssetDesc;
 
 struct AppMeta
@@ -74,6 +75,9 @@ struct AppMeta
 	static bool allowsTurboModifier(KeyCode);
 	static AssetDesc vControllerAssetDesc(KeyInfo);
 	static SystemInputDeviceDesc inputDeviceDesc(int idx);
+	// NEO-Duo fills this in. Other apps return false and keep the classic layout.
+	static bool buildDuoGamepad(VController &);
+	static void layoutDuoGamepad(VController &);
 
 	// Cheats
 	static std::unique_ptr<View> makeEditCheatsView(ViewAttachParams, CheatsView&);

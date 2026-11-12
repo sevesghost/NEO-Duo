@@ -56,6 +56,7 @@ target_sources(
 	gui/TouchConfigView.cc
 	gui/VideoOptionView.cc
 	vcontrols/VController.cc
+	vcontrols/VControllerDuo.cc
 	vcontrols/VControllerButton.cc
 	vcontrols/VControllerButtonGroup.cc
 	vcontrols/VControllerDPad.cc

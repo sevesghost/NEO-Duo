@@ -46,6 +46,17 @@ protected:
 	MultiChoiceMenuItem touchCtrl;
 	DynArray<TextMenuItem> playerItems;
 	MultiChoiceMenuItem player;
+	BoolMenuItem twoPlayers;
+	TextMenuItem duoLayoutItem[2];
+	MultiChoiceMenuItem duoLayout;
+	BoolMenuItem sharedFaceRow;
+	TextMenuItem p1SizeItem[6];
+	MultiChoiceMenuItem p1Size;
+	TextMenuItem p2SizeItem[6];
+	MultiChoiceMenuItem p2Size;
+	TextMenuItem duoAlphaItem[4];
+	MultiChoiceMenuItem p1Alpha;
+	MultiChoiceMenuItem p2Alpha;
 	TextMenuItem sizeItem[11];
 	MultiChoiceMenuItem size;
 	BoolMenuItem vibrate;

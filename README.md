@@ -1,69 +1,70 @@
-# EX Emulators
+# NEO-Duo
 
-The EX Emulator project is a series of emulators primarily targeting Android and Linux with a minimalist UI 
-and a focus on low audio/video latency. They consist of 3 components:
+NEO-Duo is a Neo Geo emulator for Android. It is a fork of [NEO.emu](https://github.com/Rakashazi/emu-ex-plus-alpha) (emu-ex-plus-alpha, commit `1c12fac`) rebuilt so **one person can control both Player 1 and Player 2 from a single touchscreen**.
 
-1. Imagine, a platform abstraction library
-2. EmuFramework, a common application framework library
-3. The emulator applications themselves
+The app id is `com.sevesghost.neoduo` and the launcher name is **NEO-Duo**, so it installs next to the original NEO.emu package.
 
-## Requirements
+## What you can do
 
-Android: Any 64-bit device or a 32-bit device with at least Android 2.3 going as far back as the Xperia Play  
-Linux: A desktop with OpenGL 3.3 support or the Pandora handheld
+On a fresh install the on-screen controls start in **two-player** mode, using the **Joint** layout:
 
-Saturn.emu requires a 64-bit device.
+- One set of buttons (D-pad, A–D, turbo A–D, A+B, C+D, A+B+C, and the turbo combos) sends each press to **both** players.
+- Small per-player Coin and Start buttons sit in the corners.
+- **Separate** mode puts a blue Player 1 set on the left and a mirrored red Player 2 set on the right. An optional row of white buttons at the bottom center can drive both players at once (off by default).
+- Turning **One Person, Both Players** off restores the original single-player touch layout.
+- Each set has its own size and opacity. Buttons can be dragged, and **Reset Emulator Button Positions** puts the current mode back on its default anchors.
+- Layouts are stored in millimetres from the screen edges under config key `CFGKEY_VCONTROLLER_DEVICE_BUTTONS_V3` (`configId` 0 = separate, 1 = joint). Wider than 16:10 keeps the controls over the picture. 16:10 or narrower shrinks the game image and leaves a strip along the bottom.
+- Launching the app mixes with other audio (YouTube, music) instead of taking exclusive audio focus. That default is not switched back on later.
 
-## Building
+BIOS and game ROMs are **not** included. You supply your own legally obtained files.
 
-See doc/INSTALL in Imagine and EmuFramework
+## Save states
 
-## Android builds
+The 68000 core is now [Musashi 4.x](https://github.com/kstenerud/Musashi) (MIT) on every ABI, including 32-bit ARM. The Z80 core is [MAME's current Z80](https://github.com/mamedev/mame/tree/master/src/devices/cpu/z80) (BSD-3-Clause), also on every ABI. The old non-commercial Musashi 3.32, Portable Z80 3.9, and GPL-2-only Cyclone cores are gone.
 
-### Google Play
+Because of that, **save states written by the previous cores do not load**. The state header uses new core flags (`m68k` 0x6, `z80` 0x9) and rejects older files.
 
-The latest stable builds are available on the Play Store via my [developer page](https://play.google.com/store/apps/collection/cluster?gsr=SktqGFp2dmEzNmZEOXhIaXV4b2ZkYXBaTHc9PbICKwoOCgpjb20uUGNlRW11EAcSFwgCEhM1MDUxMDg2NTA4NjQ2MzQ4OTg2GACwEgA%3D:S:ANO1ljKaDG4&hl) 
-and directly help fund development.
+## Credits and licenses
 
-### Nightly builds
+NEO-Duo as a whole is **GPL-3.0-or-later**, the same license as Imagine, EmuFramework, and NEO.emu. See `COPYING.GPL`.
 
-Latest builds from continuous integration:
+Upstream:
 
-| Name                    | Status                            | File                                       |
-|-------------------------|-----------------------------------|--------------------------------------------|
-| EX emulators            | [![Build Status][Build]][Actions] | [![Emulator][Download]][EX emulators]      |
-| 2600 emu                | [![Build Status][Build]][Actions] | [![Emulator][Download]][2600 emu]          |
-| C64 emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][C64 emu]           |
-| GBA emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][GBA emu]           |
-| GBC emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][GBC emu]           |
-| Lynx emu                | [![Build Status][Build]][Actions] | [![Emulator][Download]][Lynx emu]          |
-| MD emu                  | [![Build Status][Build]][Actions] | [![Emulator][Download]][MD emu]            |
-| MSX emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][MSX emu]           |
-| NEO emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][NEO emu]           |
-| NES emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][NES emu]           |
-| NGP emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][NGP emu]           |
-| PCE emu                 | [![Build Status][Build]][Actions] | [![Emulator][Download]][PCE emu]           |
-| Saturn emu              | [![Build Status][Build]][Actions] | [![Emulator][Download]][Saturn emu]        |
-| Snes9x EX 1.43          | [![Build Status][Build]][Actions] | [![Emulator][Download]][Snes9x EX 1.43  ]  |
-| Snes9x EX Plus          | [![Build Status][Build]][Actions] | [![Emulator][Download]][Snes9x EX Plus]    |
-| Swan emu                | [![Build Status][Build]][Actions] | [![Emulator][Download]][Swan emu]          |
+- Imagine and EmuFramework, and the NEO.emu application shell — © Robert Broglia, GPL-3.0-or-later. <https://github.com/Rakashazi/emu-ex-plus-alpha>
+- Gngeo — © the Gngeo team, GPL-2.0-or-later. The Neo Geo machine code under `NEO.emu/src/gngeo` (including `video_arm.s`) comes from that project.
+- 68000 — Musashi © Karl Stenerud, MIT. Sources are in `NEO.emu/src/musashi`.
+- Z80 — MAME's ZiLOG Z80 core, BSD-3-Clause, © Juergen Buchmueller and the MAME team. Sources and the generated `z80.hxx` are in `NEO.emu/src/z80`. Regenerate the execution loop with `python3 z80make.py z80.lst z80.hxx` from that directory if you update `z80.lst`.
+- YM2610 and Neo Geo protection (`ym2610.c`, `neocrypt.c`) are the MAME-derived implementations carried by Gngeo. They are distributed here under the BSD-3-Clause terms MAME has used since the 2016 relicensing. They were not rewritten onto ymfm; sound and decryption behavior follow the Gngeo/MAME code this tree already ran.
+- `memcpy.S` is the NetBSD routine (BSD-style). `crypt.h` is zlib's zip code.
 
-[Actions]: https://github.com/Rakashazi/emu-ex-plus-alpha/actions/workflows/build.yml
-[Build]: https://github.com/Rakashazi/emu-ex-plus-alpha/actions/workflows/build.yml/badge.svg
-[Download]: https://img.shields.io/badge/Download-blue
-[EX emulators]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/EX-Emulators.zip
-[2600 emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/2600Emu.zip
-[C64 emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/C64Emu.zip
-[GBA emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/GbaEmu.zip
-[GBC emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/GbcEmu.zip
-[Lynx emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/LynxEmu.zip
-[MD emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MdEmu.zip
-[MSX emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/MsxEmu.zip
-[NEO emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NeoEmu.zip
-[NES emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NesEmu.zip
-[NGP emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/NgpEmu.zip
-[PCE emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/PceEmu.zip
-[Saturn emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SaturnEmu.zip
-[Snes9x EX 1.43]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEX.zip
-[Snes9x EX Plus]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/Snes9xEXPlus.zip
-[Swan emu]: https://github.com/Rakashazi/emu-ex-plus-alpha/releases/download/Pre-release/SwanEmu.zip
+No BIOS, ROMs, keystores, or signing passwords are in this repository.
+
+## Building a signed Android APK
+
+Host tools used for the release build: JDK 21, Android SDK platform 36, Android NDK r29, and the NDK's Clang (21+). CMake is fetched by the project scripts.
+
+```bash
+export ANDROID_SDK_ROOT="$HOME/android-sdk"   # must contain platforms/android-36 and ndk/29.*
+export ANDROID_HOME="$ANDROID_SDK_ROOT"
+
+# Imagine's third-party libraries (all ABIs the meta build lists: armv7, arm64, x86, x86_64)
+( cd imagine/bundle/all && ./makeAll-android.sh install )
+
+# Point the makefiles at this tree
+./imagine/android.sh config
+./imagine/android.sh installLinks --config Release
+./EmuFramework/android.sh config
+./EmuFramework/android.sh installLinks --config Release
+
+# Release signing. Keep the keystore and passwords outside the repo.
+# ~/.gradle/gradle.properties (mode 600) — do not commit this file:
+#   ANDROID_KEY_STORE=/path/to/neoduo-release.keystore
+#   ANDROID_KEY_STORE_PASSWORD=...
+#   ANDROID_KEY_ALIAS=neoduo
+#   ANDROID_KEY_PASSWORD=...
+
+cd NEO.emu
+make -f android.mk android-apk CONFIG=Release
+```
+
+The signed universal APK is written under `NEO.emu/build/android-release/`. It contains `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `x86`.

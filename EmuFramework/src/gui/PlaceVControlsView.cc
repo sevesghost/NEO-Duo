@@ -142,8 +142,17 @@ bool PlaceVControlsView::inputEvent(const Input::Event& e, ViewInputEventParams)
 						auto bounds = window().bounds();
 						d.elem->setPos(newPos, bounds);
 						auto layoutPos = VControllerLayoutPosition::fromPixelPos(d.elem->bounds().pos(C2DO), d.elem->bounds().size(), bounds);
-						//log.info("set pos {},{} from {},{}", layoutPos.pos.x, layoutPos.pos.y, layoutPos.origin.xScaler(), layoutPos.origin.yScaler());
-						auto &vCtrlLayoutPos = d.elem->layoutPos[layoutIdx];
+						size_t elemLayout = layoutIdx;
+						if(d.elem->posIsMM())
+						{
+							float xPerMM = float(std::max(1, window().widthMMInPixels(1.f)));
+							float yPerMM = float(std::max(1, window().heightMMInPixels(1.f)));
+							layoutPos.pos.x = int16_t(std::lround(layoutPos.pos.x / xPerMM * 10.f));
+							layoutPos.pos.y = int16_t(std::lround(layoutPos.pos.y / yPerMM * 10.f));
+							elemLayout = vController.activeGamepadLayoutIndex();
+							vController.noteDuoDrag();
+						}
+						auto &vCtrlLayoutPos = d.elem->layoutPos[elemLayout];
 						vCtrlLayoutPos.origin = layoutPos.origin;
 						vCtrlLayoutPos.pos = layoutPos.pos;
 						app().viewController().placeEmuViews();

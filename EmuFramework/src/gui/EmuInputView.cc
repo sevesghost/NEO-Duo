@@ -151,6 +151,11 @@ void EmuInputView::setSystemGestureExclusion(bool on)
 		window().setSystemGestureExclusionRects({});
 }
 
+int EmuInputView::reservedVideoBottomPx() const
+{
+	return vController ? vController->videoBottomInsetPx() : 0;
+}
+
 int EmuInputView::uiElementHeight() const
 {
 	if(!vController)

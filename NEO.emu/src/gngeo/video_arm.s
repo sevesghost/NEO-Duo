@@ -1,3 +1,7 @@
+	@ From Gngeo, GPL-2.0-or-later (compatible with NEO-Duo's GPL-3.0-or-later).
+	@ No non-commercial grant. The C blitter in video.c is the portable path;
+	@ this file is an ARM32 helper only.
+
 	;@ sprite drawing
 
 .global draw_one_char_arm 	;@ (int byte1,int byte2,unsigned short *br)

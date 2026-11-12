@@ -127,6 +127,8 @@ void VControllerDPad::transposeKeysForPlayer(const InputManager &mgr, int player
 {
 	for(auto &k : config.keys)
 	{
+		if(k.flags.bothPlayers)
+			continue;
 		k = mgr.transpose(k, player);
 	}
 }
@@ -194,7 +196,16 @@ void VControllerDPad::updateSprite()
 	decltype(spriteQuads)::Type spr{{.bounds = padBaseArea.as<int16_t>(), .textureSpan = tex}};
 	decltype(spriteQuads)::Type mapSpr{{.bounds = padArea.as<int16_t>(), .textureSpan = mapImg}};
 	std::array<Gfx::Color, 5> colors;
-	colors.fill({alpha});
+	if(color.a > 0.f)
+	{
+		auto tinted = color.multiplyRGB(alpha);
+		tinted.a = alpha;
+		colors.fill(tinted);
+	}
+	else
+	{
+		colors.fill({alpha});
+	}
 	bool exclusiveLeftIsHighlighted =  isHighlighted[3] && !isHighlighted[0] && !isHighlighted[2];
 	bool exclusiveUpIsHighlighted =    isHighlighted[0] && !isHighlighted[1] && !isHighlighted[3];
 	bool exclusiveRightIsHighlighted = isHighlighted[1] && !isHighlighted[0] && !isHighlighted[2];

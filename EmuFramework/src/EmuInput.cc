@@ -220,6 +220,32 @@ void InputManager::handleSystemKeyInput(EmuApp& app, KeyInfo keyInfo, Input::Act
 {
 	if(flags.allowTurboModifier && turboModifierActive && std::ranges::all_of(keyInfo.codes, AppMeta::allowsTurboModifier))
 		keyInfo.flags.turbo = 1;
+	// A both-players button is one physical control. Fan it out to player 0 and
+	// player 1 after turbo bookkeeping, and do not let the fan-out highlight a
+	// different player's button that happens to share the same key codes.
+	if(keyInfo.flags.bothPlayers)
+	{
+		if(!flags.skipHighlight)
+			app.defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
+		if(keyInfo.flags.turbo || keyInfo.flags.toggle)
+		{
+			// Fall through with the both-players flag still set so one turbo
+			// event drives both players when it is replayed.
+		}
+		else
+		{
+			auto fan = keyInfo;
+			fan.flags.bothPlayers = 0;
+			auto child = flags;
+			child.skipHighlight = true;
+			child.allowTurboModifier = false;
+			fan.flags.deviceId = 0;
+			handleSystemKeyInput(app, fan, act, metaState, child);
+			fan.flags.deviceId = 1;
+			handleSystemKeyInput(app, fan, act, metaState, child);
+			return;
+		}
+	}
 	if(keyInfo.flags.toggle)
 	{
 		toggleInput.updateEvent(app, keyInfo, act);
@@ -230,7 +256,23 @@ void InputManager::handleSystemKeyInput(EmuApp& app, KeyInfo keyInfo, Input::Act
 	}
 	else
 	{
-		app.defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
+		if(!flags.skipHighlight)
+			app.defaultVController().updateSystemKeys(keyInfo, act == Input::Action::PUSHED);
+		if(keyInfo.flags.bothPlayers)
+		{
+			auto fan = keyInfo;
+			fan.flags.bothPlayers = 0;
+			fan.flags.turbo = 0;
+			fan.flags.toggle = 0;
+			auto child = flags;
+			child.skipHighlight = true;
+			child.allowTurboModifier = false;
+			fan.flags.deviceId = 0;
+			handleSystemKeyInput(app, fan, act, metaState, child);
+			fan.flags.deviceId = 1;
+			handleSystemKeyInput(app, fan, act, metaState, child);
+			return;
+		}
 		for(auto code : keyInfo.codes)
 		{
 			app.system().handleInputAction(&app, {code, keyInfo.flags, act, metaState});
@@ -558,6 +600,9 @@ KeyConfigDesc InputManager::defaultConfig(const Input::Device &dev) const
 
 KeyInfo InputManager::transpose(KeyInfo c, int index) const
 {
+	// both-players controls already address player 0 and 1 themselves.
+	if(c.flags.bothPlayers)
+		return c;
 	if(index != playerIndexMulti)
 		c.flags.deviceId = index;
 	return c;

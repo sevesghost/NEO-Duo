@@ -157,10 +157,9 @@
 /* Define if you have an x86_64 processor */
 //#define PROCESSOR_ADM64 1
 
-/* Define if you have an ARM processor */
-#if defined(__arm__) && !defined(__APPLE__)
-	#define PROCESSOR_ARM 1
-#endif
+/* The ARM assembly blitter needs -Wa,-EL, which Clang 21's integrated assembler
+ * rejects. The C tile blitter in video.c is used on every ABI, including ARM. */
+/* #undef PROCESSOR_ARM */
 
 /* Define if you have an x86 processor */
 /* #undef PROCESSOR_INTEL */
@@ -177,13 +176,9 @@
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 /* #undef TM_IN_SYS_TIME */
 
-#if defined(__arm__)
-	#define USE_CYCLONE 1
-	#define HAS_CURRENT_LINE_COUNT
-#else
-	#define USE_MUSASHI 1
-	#define HAS_CURRENT_LINE_COUNT
-#endif
+/* Musashi (MIT) on every ABI, including 32-bit ARM. Cyclone is GPL-2-only. */
+#define USE_MUSASHI 1
+#define HAS_CURRENT_LINE_COUNT
 
 /* Define to use alternative opengl blitter */
 //#define USE_GL2 1

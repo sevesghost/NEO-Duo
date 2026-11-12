@@ -15,6 +15,7 @@
 
 #include <emuframework/EmuVideoLayer.hh>
 #include <emuframework/EmuVideo.hh>
+#include <emuframework/EmuInputView.hh>
 #include <emuframework/Option.hh>
 import imagine;
 import glm;
@@ -33,6 +34,12 @@ EmuVideoLayer::EmuVideoLayer(EmuVideo &video, float defaultAspectRatio):
 
 void EmuVideoLayer::place(WindowRect viewRect, WindowRect displayRect, EmuInputView *inputView, EmuSystem &sys)
 {
+	if(inputView)
+	{
+		int inset = inputView->reservedVideoBottomPx();
+		if(inset > 0 && inset < displayRect.ySize() * 2 / 3)
+			displayRect.y2 -= inset;
+	}
 	if(sys.hasContent() && video.size().x)
 	{
 		auto viewportAspectRatio = displayRect.xSize() / (float)displayRect.ySize();

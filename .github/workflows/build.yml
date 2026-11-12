@@ -1,4 +1,4 @@
-name: EX Emulators
+name: NEO-Duo
 
 on: [push, pull_request]
 
@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ["2600.emu", "C64.emu", "GBA.emu", "GBC.emu", "Lynx.emu", "MD.emu", "MSX.emu", "NEO.emu", "NES.emu", "NGP.emu", "PCE.emu", "Snes9x", "Snes9x-1.43", "Swan.emu", "Saturn.emu"]
+        image: ["NEO.emu"]
     steps:
     - name: Install build dependencies
       run: |
@@ -146,7 +146,7 @@ jobs:
       working-directory: ${{ matrix.image }}
       run: |
         make -f android.mk android-apk CONFIG=Release V=1 -j`nproc`
-        cp build/android/build/outputs/apk/release/NeoEmu-release.apk "../EX-Emulators/NeoEmu-${COMMIT_PREFIX}.apk"
+        cp build/android/build/outputs/apk/release/NeoDuo-release.apk "../EX-Emulators/NeoDuo-${COMMIT_PREFIX}.apk"
     - name: Build NES.emu
       if: ${{ matrix.image == 'NES.emu' }}
       working-directory: ${{ matrix.image }}

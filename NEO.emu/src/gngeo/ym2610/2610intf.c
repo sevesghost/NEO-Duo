@@ -1,3 +1,9 @@
+/* This file is derived from MAME and is distributed under the BSD-3-Clause
+ * license used by the MAME project since 2016. See the MAME license at
+ * https://github.com/mamedev/mame/blob/master/COPYING and the NEO-Duo README.
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /***************************************************************************
 
   2610intf.c
