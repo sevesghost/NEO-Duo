@@ -58,8 +58,10 @@ function(generateConfigHeader target)
 	set(genDir "${CMAKE_BINARY_DIR}/gen")
 	set(configFilePath "${genDir}/${configFilename}")
 	message("Config Header: ${configFilePath}")
+	# execute_process pipes multiple COMMANDs together, so mkdir must not share
+	# that pipeline or writeConfig.sh races a missing directory on a clean tree.
+	file(MAKE_DIRECTORY "${genDir}")
 	execute_process(
-		COMMAND mkdir -p ${genDir}
 		COMMAND bash ${IMAGINE_PATH}/make/writeConfig.sh "${configFilePath}" "${configEnable}" "${configDisable}" "${configInc}" "${configDefs}"
 		COMMAND_ERROR_IS_FATAL ANY
 	)	
