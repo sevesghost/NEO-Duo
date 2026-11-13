@@ -32,9 +32,7 @@ enum class Driver
 
 #if defined __ANDROID__
 inline constexpr Driver driver = Driver::Android;
-#elif defined __APPLE__ && TARGET_OS_IPHONE
-inline constexpr Driver driver = Driver::Btstack;
-#elif defined __linux__
+#elif defined __linux__ && !defined __ANDROID__
 inline constexpr Driver driver = Driver::Bluez;
 #else
 inline constexpr Driver driver = Driver::None;

@@ -1,3 +1,8 @@
+/* ZiLOG Z80 core from MAME.
+ * Copyright (C) Juergen Buchmueller and the MAME team.
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 /* On an NMOS Z80, if LD A,I or LD A,R is interrupted, P/V flag gets reset,
    even if IFF2 was set before this instruction. This issue was fixed on
    the CMOS Z80, so until knowing (most) Z80 types on hardware, it's disabled */

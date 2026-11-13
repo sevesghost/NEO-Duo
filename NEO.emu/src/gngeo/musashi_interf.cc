@@ -1,3 +1,8 @@
+/* This file is part of Gngeo.
+ * Copyright (C) the Gngeo team.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 // 68000 glue for Karl Stenerud's Musashi (MIT), used on every ABI.
 // Save states written by the previous Musashi 3.32 / Cyclone cores do not load.
 

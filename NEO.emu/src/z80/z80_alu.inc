@@ -1,3 +1,8 @@
+/* ZiLOG Z80 core from MAME.
+ * Copyright (C) Juergen Buchmueller and the MAME team.
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 u8 z80_device::get_f()
 {
 	u8 f = 0;

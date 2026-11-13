@@ -60,7 +60,7 @@ static void updateTexture(const EmuApp &app, VControllerElement &e, Gfx::Rendere
 {
 	e.visit(overloaded
 	{
-		[&](VControllerDPad& dpad){ dpad.setImage(task, app.asset(AppMeta::vControllerAssetDesc(KeyInfo{0})), fanQuadIdxs); },
+		[&](VControllerDPad& dpad){ dpad.setImage(task, app.asset(AppMeta::vControllerAssetDesc(dpad.config.keys[0])), fanQuadIdxs); },
 		[&](VControllerButtonGroup &grp)
 		{
 			for(auto &btn : grp.buttons)

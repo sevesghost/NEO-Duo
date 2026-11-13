@@ -624,6 +624,8 @@ std::string InputManager::toString(KeyInfo k) const
 		s += " (Turbo)";
 	else if(k.flags.toggle)
 		s += " (Toggle)";
+	if(k.flags.bothPlayers)
+		s += " (Both Players)";
 	return s;
 }
 

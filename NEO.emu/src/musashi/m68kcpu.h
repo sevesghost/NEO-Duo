@@ -96,8 +96,12 @@ typedef uint32 uint64;
 #define S64(val) val
 #endif
 
-#include "softfloat/milieu.h"
-#include "softfloat/softfloat.h"
+/* The 68000 has no FPU. This slot only keeps the register layout; it is not SoftFloat.
+ * int8/int16/int32 are the names the opcode file used from SoftFloat's headers. */
+typedef struct { uint64 low; uint16 high; } floatx80;
+typedef sint8 int8;
+typedef sint16 int16;
+typedef sint32 int32;
 
 
 /* Allow for architectures that don't have 8-bit sizes */
@@ -2233,11 +2237,11 @@ static uint32 lshift32_safe(uint32 val, unsigned shift) {
 	return shift < 32 ? (val << shift) : 0;
 }
 
-static inline unsigned m68ki_bitfield_patch_offset(int32 offset) {
+static inline unsigned m68ki_bitfield_patch_offset(sint32 offset) {
 	return ((uint32)offset) % 8;
 }
 
-static inline uint32 m68ki_bitfield_patch_ea(uint32 ea, int32 offset) {
+static inline uint32 m68ki_bitfield_patch_ea(uint32 ea, sint32 offset) {
 	return ea + (offset >= 0 ? offset / 8 : -((7 - offset) / 8));
 }
 

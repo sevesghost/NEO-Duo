@@ -8,7 +8,7 @@ The app id is `com.sevesghost.neoduo` and the launcher name is **NEO-Duo**, so i
 
 On a fresh install the on-screen controls start in **two-player** mode, using the **Joint** layout:
 
-- One set of buttons (D-pad, A–D, turbo A–D, A+B, C+D, A+B+C, and the turbo combos) sends each press to **both** players.
+- One set of buttons (D-pad, A–D, turbo A–D, A+B, C+D, A+B+C, and the turbo combos) sends each press to **both** players. In landscape the D-pad stays on the left and the face buttons sit in two rows on the right.
 - Small per-player Coin and Start buttons sit in the top corners. Joint mode also has a white shared Select and Start at the top center.
 - **Separate** mode puts a blue Player 1 set on the left and a mirrored red Player 2 set on the right. An optional row of white buttons at the bottom center can drive both players at once (off by default) and stays at least 12 mm clear of the player buttons.
 - A Mode button at the top of the screen switches Joint and Separate when it is held for half a second. While two-player mode is on, the old single-player Virtual Gamepad Player option is greyed out.
@@ -33,14 +33,15 @@ NEO-Duo as a whole is **GPL-3.0-or-later**, the same license as Imagine, EmuFram
 Upstream:
 
 - Imagine and EmuFramework, and the NEO.emu application shell — © Robert Broglia, GPL-3.0-or-later. <https://github.com/Rakashazi/emu-ex-plus-alpha>
-- Gngeo — © the Gngeo team, GPL-2.0-or-later. The Neo Geo machine code under `NEO.emu/src/gngeo` (including `video_arm.s`) comes from that project.
-- 68000 — Musashi © Karl Stenerud, MIT. Sources are in `NEO.emu/src/musashi`.
+- Gngeo — © the Gngeo team, GPL-2.0-or-later. The Neo Geo machine code under `NEO.emu/src/gngeo` comes from that project. The ARM and x86 blitters (`video_arm.s`, `video_i386.asm`) are not in this tree; every ABI uses the C blitter.
+- 68000 — Musashi © Karl Stenerud, MIT. Sources are in `NEO.emu/src/musashi`. The 68000 has no FPU or PMMU, so `m68kfpu.c`, `m68kmmu.h`, and SoftFloat are not included.
 - Z80 — MAME's ZiLOG Z80 core, BSD-3-Clause, © Juergen Buchmueller and the MAME team. Sources and the generated `z80.hxx` are in `NEO.emu/src/z80`. Regenerate the execution loop with `python3 z80make.py z80.lst z80.hxx` from that directory if you update `z80.lst`.
 - YM2610 (`ym2610.c`) is GPL-2.0-or-later, © Jarek Burczynski and Tatsuyuki Satoh, from MAME's `fm.cpp` and `ymdeltat.cpp`. The interface in `2610intf.c` is BSD-3-Clause © Ernesto Corvi plus the Gngeo GPL-2.0-or-later integration. Neo Geo protection (`neocrypt.c`) stays under MAME's BSD-3-Clause terms. None of these were rewritten onto ymfm.
 - The calendar chip in `pd4990a.c` is an original implementation. Its shift register and strobe follow MAME's BSD-3-Clause `upd1990a` device (© Curt Coder, hap, and the MAME team). The old non-commercial MAME `pd4990a` sources are not in this tree.
 - The image shaders in `EmuFramework/res/shaders` (direct, scale, and the edge-directed smoother, including the fallback variants) are original GPL-3.0-or-later code. The previous unlicensed hq2x and Scale2x shader text was replaced.
 - EmuFramework no longer builds or ships the unused Mednafen `mednafen_common` / `src/shared` sources.
-- `memcpy.S` is the NetBSD routine (BSD-style). `crypt.h` is zlib's zip code.
+- The 4-clause BSD `memcpy.S` and the unused zlib `crypt.h` are not in this tree. BTstack (non-commercial) is not built or shipped; Android uses the platform Bluetooth adapter.
+- Other bundled libraries are listed in `THIRD-PARTY-NOTICES`.
 
 No BIOS, ROMs, keystores, or signing passwords are in this repository.
 
@@ -49,8 +50,11 @@ No BIOS, ROMs, keystores, or signing passwords are in this repository.
 Host tools used for the release build: JDK 21, Android SDK platform 36, Android NDK r29, and the NDK's Clang (21+). CMake is fetched by the project scripts.
 
 ```bash
-export ANDROID_SDK_ROOT="$HOME/android-sdk"   # must contain platforms/android-36 and ndk/29.*
+export ANDROID_SDK_ROOT="$HOME/android-sdk"   # must contain platforms/android-36 and an NDK
 export ANDROID_HOME="$ANDROID_SDK_ROOT"
+export IMAGINE_PATH="$PWD/imagine"
+export EMUFRAMEWORK_PATH="$PWD/EmuFramework"
+export IMAGINE_SDK_PATH="${IMAGINE_SDK_PATH:-$HOME/imagine-sdk}"
 
 # Imagine's third-party libraries (all ABIs the meta build lists: armv7, arm64, x86, x86_64)
 ( cd imagine/bundle/all && ./makeAll-android.sh install )
@@ -67,9 +71,10 @@ export ANDROID_HOME="$ANDROID_SDK_ROOT"
 #   ANDROID_KEY_STORE_PASSWORD=...
 #   ANDROID_KEY_ALIAS=neoduo
 #   ANDROID_KEY_PASSWORD=...
+# Without those properties the release build is signed with the debug key.
 
 cd NEO.emu
 make -f android.mk android-apk CONFIG=Release
 ```
 
-The signed universal APK is written under `NEO.emu/build/android-release/`. It contains `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `x86`.
+The universal APK is `NEO.emu/build/android/build/outputs/apk/release/NeoDuo-release.apk`. It contains `arm64-v8a`, `armeabi-v7a`, `x86_64`, and `x86`. BIOS and game archives are not packaged.

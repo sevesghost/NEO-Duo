@@ -135,29 +135,31 @@ struct Rows
 	float ad, turbo, combo, tcombo;
 };
 
-// adFromBottom is the A–D center. Turbo sits 10.8 mm above that (9 mm -> 19.8 mm
-// at the default size). Combo rows are pulled down so they stay inside the
-// bottom 40% of the screen, and they stay at or above the turbo row.
+// adFromBottom is the A–D center. At the default 10 mm face the turbo row is
+// 10.8 mm above that (9 mm and 19.8 mm). The turbo row always stays inside
+// the bottom 40% of the screen. When that band cannot hold every row, the
+// plain combo row sits above the ceiling instead of being crushed onto turbo.
 Rows makeRows(float btn, float gap, float ceiling, float adFromBottom)
 {
 	float half = btn * 0.5f;
 	if(adFromBottom < half)
 		adFromBottom = half;
-	float turbo = adFromBottom + 10.8f;
-	if(turbo + half > ceiling && ceiling - half >= adFromBottom)
-		turbo = ceiling - half;
-	float combo = turbo + btn + gap;
-	float tcombo = combo + btn + gap;
-	if(tcombo + half > ceiling)
-	{
-		tcombo = std::max(turbo, ceiling - half);
-		combo = tcombo - btn - gap;
-		if(combo < turbo)
-			combo = turbo;
-		if(combo + half > ceiling)
-			combo = tcombo;
-	}
-	return {adFromBottom, turbo, combo, tcombo};
+	float step = btn + std::max(gap, 2.f);
+	// 10.8 mm is the reference rise. A larger face needs a full step or the
+	// two rows overlap.
+	float turboRise = btn <= 10.f ? 10.8f : step;
+	float turboLimit = std::max(half, ceiling - half);
+	float classicTurbo = adFromBottom + turboRise;
+	float classicCombo = classicTurbo + step;
+	float classicTcombo = classicCombo + step;
+	if(classicTcombo + half <= ceiling)
+		return {adFromBottom, classicTurbo, classicCombo, classicTcombo};
+	float turbo = std::min(classicTurbo, turboLimit);
+	float ad = adFromBottom;
+	if(std::abs(ad - turbo) < btn)
+		ad = turbo + step;
+	float above = std::max(ad, turbo);
+	return {ad, turbo, above + step, above + step * 2.f};
 }
 
 void layoutCanvas(VController &v, int layout, float W, float H, bool wide)
@@ -229,13 +231,54 @@ void layoutCanvas(VController &v, int layout, float W, float H, bool wide)
 		float dpadX = margin + dpad * 0.5f;
 		float dpadFromBottom = margin + dpad * 0.5f;
 		placeRole(P1Dpad, dpadX, H - dpadFromBottom);
-		float faceLeft = dpadX + dpad * 0.5f + gap;
-		Rows rows = makeRows(b1, gap, ceiling, std::max(9.f, b1 * 0.5f));
-		placeRows(0, faceLeft, b1, rows, false);
 		float pair = coin + gap;
 		placeRole(BothSelect, W * 0.5f - pair * 0.5f, topY);
 		placeRole(BothStart, W * 0.5f + pair * 0.5f, topY);
-		clusterTop = std::max(dpadFromBottom + dpad * 0.5f, rows.tcombo + b1 * 0.5f);
+		// Landscape joint keeps the face buttons on the right so the left
+		// hand stays on the D-pad. Centers are millimetres from the
+		// bottom-right corner, matching a 10 mm face on a 151x68 mm phone.
+		// dx grows to the left. The top row is staggered 6 mm from the bottom.
+		float pitch = std::max(12.f, b1 + 2.f);
+		float s = pitch / 12.f;
+		float dyBottom = std::max(b1 * 0.5f, 9.f * s);
+		float dyTop = dyBottom + (b1 <= 10.f ? 10.8f * s : std::max(10.8f * s, b1 + 2.f));
+		// The top row holds the turbo buttons, so its top edge stays inside 40%.
+		float dyTopLimit = std::max(dyBottom + b1, ceiling - b1 * 0.5f);
+		if(dyTop > dyTopLimit)
+			dyTop = dyTopLimit;
+		struct Slot { uint8_t role; float dx; float dy; };
+		Slot slots[]
+		{
+			{P1D, 12, 0}, {P1C, 24, 0}, {P1B, 36, 0}, {P1A, 48, 0},
+			{P1CD, 72, 0}, {P1ABC, 84, 0}, {P1TABC, 96, 0},
+			{P1TD, 18, 1}, {P1TC, 30, 1}, {P1TB, 42, 1}, {P1TA, 54, 1},
+			{P1AB, 66, 1}, {P1TAB, 78, 1}, {P1TCD, 90, 1},
+		};
+		float leftmost = 96.f * s + b1 * 0.5f;
+		bool horizontal = W >= H && (W - leftmost) >= (margin + dpad + gap);
+		if(horizontal)
+		{
+			for(auto slot : slots)
+			{
+				float dx = slot.dx * s;
+				float dy = slot.dy ? dyTop : dyBottom;
+				placeRole(slot.role, W - dx, H - dy);
+			}
+			clusterTop = std::max(dpadFromBottom + dpad * 0.5f, dyTop + b1 * 0.5f);
+		}
+		else
+		{
+			// Portrait is too narrow for that row, so the same buttons stack
+			// on the right of the D-pad. Turbo still stays inside 40%.
+			float faceW = 4.f * b1 + 3.f * gap;
+			float buttonsLeft = W - margin - faceW;
+			float dpadRight = margin + dpad;
+			if(buttonsLeft < dpadRight + gap)
+				buttonsLeft = dpadRight + gap;
+			Rows rows = makeRows(b1, gap, ceiling, std::max(9.f, b1 * 0.5f));
+			placeRows(0, buttonsLeft, b1, rows, false);
+			clusterTop = std::max(dpadFromBottom + dpad * 0.5f, rows.tcombo + b1 * 0.5f);
+		}
 	}
 	else
 	{

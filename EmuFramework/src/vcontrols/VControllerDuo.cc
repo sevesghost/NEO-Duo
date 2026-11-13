@@ -212,8 +212,10 @@ void VController::syncDuoModeButton()
 	auto &elem = uiElements.emplace_back(std::in_place_type<VControllerUIButtonGroup>, conf);
 	elem.sizeMM100x = 900;
 	elem.duoFlags = VControllerElement::DUO_POS_MM;
-	setDuoPosition(elem, 0, CT2DO, 0.f, 8.f);
-	setDuoPosition(elem, 1, CT2DO, 0.f, 8.f);
+	// Select/Start sit at about 9.5 mm from the top. 30 mm puts this button
+	// about 20 mm below them so the 9 mm discs do not overlap.
+	setDuoPosition(elem, 0, CT2DO, 0.f, 30.f);
+	setDuoPosition(elem, 1, CT2DO, 0.f, 30.f);
 	if(hasWindow())
 		update(elem);
 }

@@ -55,6 +55,8 @@ constexpr auto faceKeyInfo = makeArray<KeyInfo>
 );
 
 constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
+constexpr auto bothDpadKeyInfo = bothPlayers(dpadKeyInfo);
+constexpr auto bothFaceKeyInfo = bothPlayers(faceKeyInfo);
 
 constexpr KeyInfo abCombo{std::array{NeoKey::A, NeoKey::B}};
 constexpr KeyInfo cdCombo{std::array{NeoKey::C, NeoKey::D}};
@@ -172,6 +174,7 @@ AssetDesc AppMeta::vControllerAssetDesc(KeyInfo key)
 	static constexpr struct VirtualControllerAssets
 	{
 		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+		jointDpad{AssetFileID::gamepadOverlay, gpImageCoords({{8, 4}, {4, 4}})},
 
 		a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
 		b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
@@ -193,8 +196,10 @@ AssetDesc AppMeta::vControllerAssetDesc(KeyInfo key)
 		tabc{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})};
 	} virtualControllerAssets;
 
-	if(key[0] == 0)
-		return virtualControllerAssets.dpad;
+	bool direction = NeoKey(key[0]) == NeoKey::Up || NeoKey(key[0]) == NeoKey::Right
+		|| NeoKey(key[0]) == NeoKey::Down || NeoKey(key[0]) == NeoKey::Left;
+	if(key[0] == 0 || direction)
+		return key.flags.bothPlayers ? virtualControllerAssets.jointDpad : virtualControllerAssets.dpad;
 	auto face = [&](AssetDesc plain, AssetDesc turboImg) { return key.flags.turbo ? turboImg : plain; };
 	switch(NeoKey(key[0]))
 	{
@@ -226,6 +231,8 @@ SystemInputDeviceDesc AppMeta::inputDeviceDesc(int idx)
 		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
 		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
 		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, {.altConfig = true}},
+		InputComponentDesc{"Both Players D-Pad", bothDpadKeyInfo, InputComponent::dPad, LB2DO, {.altConfig = true}},
+		InputComponentDesc{"Both Players", bothFaceKeyInfo, InputComponent::button, RB2DO, {.altConfig = true, .staggeredLayout = true}},
 	};
 	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 	return gamepadDesc;

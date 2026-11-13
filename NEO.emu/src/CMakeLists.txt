@@ -39,10 +39,9 @@ target_sources(neoemu PRIVATE
 	musashi/m68kcpu.c
 	musashi/m68kops.c
 	musashi/m68kdasm.c
-	musashi/softfloat/softfloat.c
 	gngeo/musashi_interf.cc
 )
 set_source_files_properties(
-	musashi/m68kcpu.c musashi/m68kops.c musashi/m68kdasm.c musashi/softfloat/softfloat.c
+	musashi/m68kcpu.c musashi/m68kops.c musashi/m68kdasm.c
 	PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter;-Wno-unused-function;-Wno-sign-compare"
 )

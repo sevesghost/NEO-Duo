@@ -1,3 +1,8 @@
+/* ZiLOG Z80 core from MAME.
+ * Copyright (C) Juergen Buchmueller and the MAME team.
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
 if (m_wait_state)
 {
 	m_icount = 0; // stalled

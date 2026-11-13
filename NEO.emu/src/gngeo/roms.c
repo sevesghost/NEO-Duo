@@ -1,3 +1,8 @@
+/* This file is part of Gngeo.
+ * Copyright (C) the Gngeo team.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 #ifdef HAVE_CONFIG_H
 #include <gngeo-config.h>
 #endif

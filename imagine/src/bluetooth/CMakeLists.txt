@@ -3,9 +3,6 @@ if(${ENV} STREQUAL linux)
 	target_sources(imagine PRIVATE BluezBluetoothAdapter.cc)
 elseif(${ENV} STREQUAL android)
 	target_sources(imagine PRIVATE AndroidBluetoothAdapter.cc)
-elseif(${ENV} STREQUAL ios AND NOT ARCH STREQUAL x86)
-	addPkgBtStack(imagine)
-	target_sources(imagine PRIVATE BtstackBluetoothAdapter.cc)
 endif()
 
 target_sources(

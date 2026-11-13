@@ -346,6 +346,10 @@ def main(argv):
         sys.stderr.write("cannot write file %s [%s]\n" % (argv[fidx + 1], err))
         sys.exit(1)
 
+    f.write("/* ZiLOG Z80 core from MAME.\n"
+            " * Copyright (C) Juergen Buchmueller and the MAME team.\n"
+            " * SPDX-License-Identifier: BSD-3-Clause\n"
+            " */\n\n")
     opcodes.save_exec(f)
     f.close()
 

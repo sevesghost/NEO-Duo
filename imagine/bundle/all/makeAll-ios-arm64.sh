@@ -1,7 +1,6 @@
 #!/bin/bash
 
 makefilesToRun='
-	src/btstack/ios-arm64.mk
 
 	src/libogg/ios-arm64.mk
 	
