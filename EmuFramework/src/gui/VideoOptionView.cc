@@ -239,6 +239,66 @@ VideoOptionView::VideoOptionView(ViewAttachParams attach, EmuVideoLayer &videoLa
 			pushAndShowModal(makeView<PlaceVideoView>(videoLayer, app().defaultVController()), e);
 		}
 	},
+	gameImageX
+	{
+		"Horizontal Offset", attach,
+		[this](const Input::Event &e)
+		{
+			bool portrait = appContext().mainWindow().isPortrait();
+			int current = portrait ? videoLayer.portraitOffsetX : videoLayer.landscapeOffset;
+			pushAndShowNewCollectValueRangeInputView<int, -8000, 8000>(attachParams(), e,
+				"Pixels from the default spot", std::to_string(current).c_str(),
+				[this, portrait](CollectTextInputView &, int val)
+				{
+					if(portrait)
+						videoLayer.portraitOffsetX = int16_t(val);
+					else
+						videoLayer.landscapeOffset = int16_t(val);
+					app().viewController().placeEmuViews();
+					return true;
+				});
+		}
+	},
+	gameImageY
+	{
+		"Vertical Offset", attach,
+		[this](const Input::Event &e)
+		{
+			bool portrait = appContext().mainWindow().isPortrait();
+			int current = portrait ? videoLayer.portraitOffset : videoLayer.landscapeOffsetY;
+			pushAndShowNewCollectValueRangeInputView<int, -8000, 8000>(attachParams(), e,
+				"Pixels from the default spot", std::to_string(current).c_str(),
+				[this, portrait](CollectTextInputView &, int val)
+				{
+					if(portrait)
+						videoLayer.portraitOffset = int16_t(val);
+					else
+						videoLayer.landscapeOffsetY = int16_t(val);
+					app().viewController().placeEmuViews();
+					return true;
+				});
+		}
+	},
+	gameImageScale
+	{
+		"Placement Scale", attach,
+		[this](const Input::Event &e)
+		{
+			bool portrait = appContext().mainWindow().isPortrait();
+			int current = portrait ? videoLayer.portraitPlaceScale : videoLayer.landscapePlaceScale;
+			pushAndShowNewCollectValueRangeInputView<int, 25, 300>(attachParams(), e,
+				"Percent, 25 to 300", std::to_string(current).c_str(),
+				[this, portrait](CollectTextInputView &, int val)
+				{
+					if(portrait)
+						videoLayer.portraitPlaceScale = int16_t(val);
+					else
+						videoLayer.landscapePlaceScale = int16_t(val);
+					app().viewController().placeEmuViews();
+					return true;
+				});
+		}
+	},
 	imgFilter
 	{
 		"Image Interpolation", attach,
@@ -555,6 +615,9 @@ void VideoOptionView::loadStockItems()
 	item.emplace_back(&contentRotation);
 	placeVideo.setActive(system().hasContent());
 	item.emplace_back(&placeVideo);
+	item.emplace_back(&gameImageX);
+	item.emplace_back(&gameImageY);
+	item.emplace_back(&gameImageScale);
 	item.emplace_back(&colorLevelsHeading);
 	item.emplace_back(&brightness);
 	item.emplace_back(&red);

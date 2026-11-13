@@ -1,0 +1,13 @@
+# Local test media. Keep BIOS and game archives out of the tree and out of CI.
+neogeo.zip
+mslug.zip
+**/roms/**/*.zip
+**/test/**/*.zip
+
+# Signing material and build products. Do not commit these.
+*.jks
+*.keystore
+*.apk
+*.aab
+local.properties
+NEO.emu/build/

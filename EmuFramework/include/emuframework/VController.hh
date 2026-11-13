@@ -127,6 +127,7 @@ protected:
 	Gfx::ILitTexFanQuads spriteQuads;
 	Gfx::TextureSpan tex;
 	Gfx::Texture mapImg;
+	Gfx::Color color{};
 	WRect padBaseArea, padArea;
 	int deadzonePixels{};
 	int btnSizePixels{};
@@ -138,6 +139,8 @@ public:
 	bool isHighlighted[4]{};
 
 	void updateBoundingAreaGfx(Gfx::Renderer &);
+	void setTint(Gfx::Color c) { color = c; }
+	Gfx::Color tint() const { return color; }
 };
 
 class VControllerKeyboard
@@ -388,6 +391,23 @@ public:
 
 	std::array<VControllerLayoutPosition, 2> layoutPos;
 	VControllerState state{VControllerState::SHOWN};
+	// Duo controls. sizeMM100x 0 uses the global button size. Positions are
+	// millimetres*10 from layoutPos.origin when DUO_POS_MM is set.
+	int16_t sizeMM100x{};
+	uint8_t ownAlpha{};
+	uint8_t duoFlags{};
+	uint8_t duoRole{255};
+
+	static constexpr uint8_t DUO_POS_MM = 1 << 0;
+	static constexpr uint8_t DUO_FIXED_PLAYER = 1 << 1;
+	static constexpr uint8_t DUO_OWN_ALPHA = 1 << 2;
+	static constexpr uint8_t DUO_PLAYER_SHIFT = 3;
+	static constexpr uint8_t DUO_PLAYER_MASK = 3 << DUO_PLAYER_SHIFT;
+
+	constexpr bool posIsMM() const { return duoFlags & DUO_POS_MM; }
+	constexpr bool fixedPlayer() const { return duoFlags & DUO_FIXED_PLAYER; }
+	constexpr bool hasOwnAlpha() const { return duoFlags & DUO_OWN_ALPHA; }
+	constexpr int playerSet() const { return (duoFlags & DUO_PLAYER_MASK) >> DUO_PLAYER_SHIFT; }
 
 	constexpr auto dPad(this auto&& self) { return std::get_if<VControllerDPad>(&self); }
 	constexpr auto buttonGroup(this auto&& self) { return std::get_if<VControllerButtonGroup>(&self); }
@@ -457,7 +477,11 @@ public:
 
 	std::string name(const InputManager &mgr) const
 	{
-		return visit([&](auto &e){ return e.name(mgr); });
+		auto label = visit([&](auto &e){ return e.name(mgr); });
+		if(!fixedPlayer())
+			return label;
+		const char *who = playerSet() == 2 ? "Both " : playerSet() == 1 ? "P2 " : "P1 ";
+		return std::string{who} + label;
 	}
 
 	void updateMeasurements(const Window &win)
@@ -473,6 +497,10 @@ public:
 
 	void transposeKeysForPlayer(const InputManager &mgr, int player)
 	{
+		// P2 (and any control locked to its own player) must survive
+		// configure()/setInputPlayer(), which retargets the single-player set.
+		if(fixedPlayer())
+			return;
 		visit([&](auto &e)
 		{
 			if constexpr(requires {e.transposeKeysForPlayer(mgr, player);})
@@ -549,6 +577,22 @@ enum class VControllerVisibility : uint8_t
 {
 	OFF, ON, AUTO
 };
+
+enum class DuoLayout : uint8_t
+{
+	Separate = 0,
+	Joint = 1
+};
+
+inline Gfx::Color duoButtonColor(KeyInfo key)
+{
+	const bool turbo = key.flags.turbo;
+	if(key.flags.bothPlayers)
+		return turbo ? Gfx::Color{1.f, 0.80f, 0.20f} : Gfx::Color{1.f, 1.f, 1.f};
+	if(key.flags.deviceId)
+		return turbo ? Gfx::Color{1.f, 0.55f, 0.10f} : Gfx::Color{0.90f, 0.20f, 0.20f};
+	return turbo ? Gfx::Color{0.70f, 0.45f, 1.f} : Gfx::Color{0.20f, 0.60f, 1.f};
+}
 
 struct VControllerGamepadFlags
 {
@@ -644,6 +688,32 @@ public:
 	WRect layoutBounds() const;
 	void updateSystemKeys(KeyInfo, bool isPushed);
 	void resetHighlightedKeys();
+	bool twoPlayerControls() const { return twoPlayer_; }
+	void setTwoPlayerControls(bool on);
+	DuoLayout duoLayout() const { return duoLayout_; }
+	void setDuoLayout(DuoLayout layout);
+	bool showSharedFaceRow() const { return showSharedRow_; }
+	void setShowSharedFaceRow(bool on);
+	int playerFaceSizeMM100x(int player) const { return player ? p2Size_ : p1Size_; }
+	void setPlayerFaceSizeMM100x(int player, int mm100x);
+	int sharedFaceSizeMM100x() const { return sharedSize_; }
+	void setSharedFaceSizeMM100x(int mm100x);
+	int playerOpacity(int player) const { return player ? p2Alpha_ : p1Alpha_; }
+	void setPlayerOpacity(int player, uint8_t alpha);
+	int sharedOpacity() const { return sharedAlpha_; }
+	void setSharedOpacity(uint8_t alpha);
+	bool lockPlayerSizes() const { return lockPlayerSizes_; }
+	void setLockPlayerSizes(bool on);
+	int activeGamepadLayoutIndex() const;
+	int videoBottomInsetPx() const;
+	bool duoPositionsCustomized() const { return duoCustomized_; }
+	void noteDuoDrag();
+	VControllerElement &addDuoButton(KeyInfo key, int16_t sizeMM100x, uint8_t playerSet, uint8_t role);
+	VControllerElement &addDuoDPad(std::span<const KeyInfo, 4> keys, int16_t sizeMM100x, uint8_t playerSet, uint8_t role);
+	void setDuoPosition(VControllerElement &elem, int layoutIdx, _2DOrigin origin, float xMm, float yMm);
+	void setVideoBottomInsetMM(int layout, float mm);
+	void syncDuoModeButton();
+	void rebuildDuoIfNeeded();
 
 private:
 	ApplicationContext appCtx{};
@@ -665,6 +735,19 @@ private:
 	static constexpr auto DEFAULT_GAMEPAD_CONTROLS_VISIBILITY{Config::envIsLinux ? VControllerVisibility::OFF : VControllerVisibility::AUTO};
 	VControllerVisibility gamepadControlsVisibility_{DEFAULT_GAMEPAD_CONTROLS_VISIBILITY};
 	int8_t inputPlayer_{};
+	bool twoPlayer_{true};
+	DuoLayout duoLayout_{DuoLayout::Joint};
+	bool showSharedRow_{};
+	bool duoCustomized_{};
+	bool duoV3Loaded_{};
+	int16_t p1Size_{1000};
+	int16_t p2Size_{1000};
+	int16_t sharedSize_{1000};
+	uint8_t p1Alpha_{uint8_t(255 * .5f)};
+	uint8_t p2Alpha_{uint8_t(255 * .5f)};
+	uint8_t sharedAlpha_{uint8_t(255 * .4f)};
+	bool lockPlayerSizes_{};
+	float bottomInsetMM_[2]{};
 	bool physicalControlsPresent{};
 	bool gamepadIsVisible{gamepadControlsVisibility_ != VControllerVisibility::OFF};
 	VControllerGamepadFlags gamepadDisabledFlags{};
@@ -689,6 +772,8 @@ private:
 	int uiButtonPixelSize() const;
 	void writeDeviceButtonsConfig(FileIO &) const;
 	void writeUIButtonsConfig(FileIO &) const;
+	void writeDuoButtonsConfig(FileIO &) const;
+	void placeElement(VControllerElement &, int layoutIdx);
 };
 
 }

@@ -53,6 +53,9 @@ protected:
 	TextMenuItem contentRotationItem[5];
 	MultiChoiceMenuItem contentRotation;
 	TextMenuItem placeVideo;
+	TextMenuItem gameImageX;
+	TextMenuItem gameImageY;
+	TextMenuItem gameImageScale;
 	BoolMenuItem imgFilter;
 	TextMenuItem imgEffectItem[6];
 	MultiChoiceMenuItem imgEffect;

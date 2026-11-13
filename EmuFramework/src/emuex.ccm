@@ -149,6 +149,7 @@ export namespace EmuEx
 	using EmuEx::patchesMenuName;
 	using EmuEx::palettesMenuName;
 	using EmuEx::turbo;
+	using EmuEx::bothPlayers;
 	using EmuEx::transpose;
 	using EmuEx::genericKeyConfigs;
 	using EmuEx::Cheat;

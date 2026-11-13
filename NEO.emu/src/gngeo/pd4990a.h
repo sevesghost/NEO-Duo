@@ -1,5 +1,8 @@
 /*
- *	Header file for the PD4990A Serial I/O calendar & clock.
+ * Public calendar API. The struct layout is the save-state blob.
+ * Serial behavior is implemented in pd4990a.c from the BSD-3-Clause
+ * uPD1990A shift/strobe model (MAME, Curt Coder and hap).
+ * SPDX-License-Identifier: BSD-3-Clause
  */
 #include "memory.h"
 struct pd4990a_s

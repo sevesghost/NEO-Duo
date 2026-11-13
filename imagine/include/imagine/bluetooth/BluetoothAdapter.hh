@@ -19,8 +19,6 @@
 
 #if defined CONFIG_BLUETOOTH_ANDROID
 #include "AndroidBluetoothAdapter.hh"
-#elif defined CONFIG_BLUETOOTH_BTSTACK
-#include "BtstackBluetoothAdapter.hh"
 #elif defined CONFIG_BLUETOOTH_BLUEZ
 #include "BluezBluetoothAdapter.hh"
 #endif

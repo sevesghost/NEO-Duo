@@ -1,10 +1,8 @@
-set(Z80_PATH "${EMUFRAMEWORK_PATH}/../MD.emu/src/genplus-gx/z80")
-target_include_directories(neoemu PRIVATE "${Z80_PATH}")
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	# needed for Z80CPU::makeFlagTables()
-	target_compile_options(neoemu PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-fconstexpr-steps=10000000>)
-endif()
+target_include_directories(neoemu PRIVATE
+	"${CMAKE_CURRENT_SOURCE_DIR}"
+	"${CMAKE_CURRENT_SOURCE_DIR}/musashi"
+	"${CMAKE_CURRENT_SOURCE_DIR}/z80"
+)
 
 target_sources(neoemu PRIVATE FILE_SET CXX_MODULES
 	BASE_DIRS main
@@ -19,7 +17,8 @@ target_sources(neoemu PRIVATE
 	main/state.cc
 	main/unzip.cc
 	main/EmuMenuViews.cc
-	${Z80_PATH}/z80.cc
+	main/DuoGamepad.cc
+	z80/z80_core.cc
 	gngeo/mamez80_interf.cc
 	gngeo/ym2610/2610intf.c
 	gngeo/ym2610/ym2610.c
@@ -36,17 +35,13 @@ target_sources(neoemu PRIVATE
 	gngeo/video.c
 )
 
-if(ARCH STREQUAL arm)
-	if(ENV STREQUAL ios)
-		target_sources(neoemu PRIVATE gngeo/cyclone_interf.c gngeo/cyclone/Cyclone-apple.s)
-		set_source_files_properties(gngeo/cyclone/Cyclone-apple.s PROPERTIES POSITION_INDEPENDENT_CODE OFF)
-	else()
-		target_sources(neoemu PRIVATE gngeo/video_arm.s gngeo/cyclone_interf.c gngeo/cyclone/Cyclone.s)
-		set_source_files_properties(gngeo/cyclone/Cyclone.s PROPERTIES POSITION_INDEPENDENT_CODE OFF)
-		set_source_files_properties(gngeo/cyclone/video_arm.s PROPERTIES POSITION_INDEPENDENT_CODE OFF)
-	endif()
-else()
-	set(M68K_PATH "${EMUFRAMEWORK_PATH}/../MD.emu/src/genplus-gx/m68k")
-	target_include_directories(neoemu PRIVATE "${M68K_PATH}")
-	target_sources(neoemu PRIVATE "${M68K_PATH}/musashi/m68kcpu.cc" gngeo/musashi_interf.cc)
-endif()
+target_sources(neoemu PRIVATE
+	musashi/m68kcpu.c
+	musashi/m68kops.c
+	musashi/m68kdasm.c
+	gngeo/musashi_interf.cc
+)
+set_source_files_properties(
+	musashi/m68kcpu.c musashi/m68kops.c musashi/m68kdasm.c
+	PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter;-Wno-unused-function;-Wno-sign-compare"
+)

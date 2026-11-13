@@ -182,6 +182,7 @@ struct InputDeviceSavedSessionConfig
 struct SystemKeyInputFlags
 {
 	bool allowTurboModifier{true};
+	bool skipHighlight{};
 };
 
 }

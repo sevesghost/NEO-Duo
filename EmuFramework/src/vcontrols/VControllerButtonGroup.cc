@@ -170,6 +170,8 @@ void VControllerButtonGroup::transposeKeysForPlayer(const InputManager &mgr, int
 {
 	for(auto &b : buttons)
 	{
+		if(b.key.flags.bothPlayers)
+			continue;
 		b.key = mgr.transpose(b.key, player);
 	}
 }

@@ -1,3 +1,10 @@
+/* YM2610 software emulator.
+ * Copyright (C) 2001-2003 Jarek Burczynski
+ * Copyright (C) 1998 Tatsuyuki Satoh
+ * Derived from MAME's fm.cpp and ymdeltat.cpp.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 /***************************************************************************
 
   ym2610.h

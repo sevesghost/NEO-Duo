@@ -1,3 +1,8 @@
+/* This file is part of Gngeo.
+ * Copyright (C) the Gngeo team.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 /* Roms/Ram driver interface */
 #ifndef H_ROMS
 #define H_ROMS

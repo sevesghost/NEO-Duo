@@ -132,6 +132,19 @@ constexpr auto turbo(std::ranges::range auto keyInfo)
 	return keyInfo;
 }
 
+constexpr auto bothPlayers(std::ranges::range auto keyInfo)
+{
+	for(auto &k : keyInfo)
+		k.flags.bothPlayers = 1;
+	return keyInfo;
+}
+
+constexpr KeyInfo bothPlayers(KeyInfo keyInfo)
+{
+	keyInfo.flags.bothPlayers = 1;
+	return keyInfo;
+}
+
 template<const auto &pcKeyboardBaseMap, const auto &genericGamepadBaseMap, const auto &wiimoteBaseMap,
 	const auto &gamepadAppKeyCodeMap = genericGamepadAppKeyCodeMap>
 constexpr std::span<const KeyConfigDesc> genericKeyConfigs()

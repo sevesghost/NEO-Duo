@@ -37,13 +37,13 @@ static int m68k_flag=0x2;
 #elif USE_CYCLONE
 static int m68k_flag=0x3;
 #elif USE_MUSASHI
-static int m68k_flag=0x4;
+static int m68k_flag=0x6; // MIT Musashi; 0x4 was the old non-commercial 3.32 core
 #endif
 
 #ifdef USE_RAZE
 static int z80_flag=0x4;
 #elif USE_MAMEZ80
-static int z80_flag=0x8;
+static int z80_flag=0x9; // current MAME Z80; 0x8 was Portable Z80 3.9
 #elif USE_DRZ80
 static int z80_flag=0xC;
 #endif
@@ -77,8 +77,8 @@ bool openState(MapIO &io, int mode)
 
 		if (flags != (m68k_flag | z80_flag | endian_flag))
 		{
-			NeoSystem::log.error("This save state comes from a different endian architecture.\n"
-					"This is not currently supported :(");
+			NeoSystem::log.error("This save state was written by a different CPU core or endianness.\n"
+					"NEO-Duo uses Musashi and MAME's Z80, so older NEO.emu states do not load.");
 			return false;
 		}
 	}

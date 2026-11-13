@@ -55,10 +55,23 @@ constexpr auto faceKeyInfo = makeArray<KeyInfo>
 );
 
 constexpr auto turboFaceKeyInfo = turbo(faceKeyInfo);
+constexpr auto bothDpadKeyInfo = bothPlayers(dpadKeyInfo);
+constexpr auto bothFaceKeyInfo = bothPlayers(faceKeyInfo);
 
-constexpr std::array comboKeyInfo{KeyInfo{std::array{NeoKey::A, NeoKey::B, NeoKey::C}}};
+constexpr KeyInfo abCombo{std::array{NeoKey::A, NeoKey::B}};
+constexpr KeyInfo cdCombo{std::array{NeoKey::C, NeoKey::D}};
+constexpr KeyInfo abcCombo{std::array{NeoKey::A, NeoKey::B, NeoKey::C}};
+constexpr KeyInfo abTurboCombo = []{ auto key = abCombo; key.flags.turbo = 1; return key; }();
+constexpr KeyInfo cdTurboCombo = []{ auto key = cdCombo; key.flags.turbo = 1; return key; }();
+constexpr KeyInfo abcTurboCombo = []{ auto key = abcCombo; key.flags.turbo = 1; return key; }();
 
-constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, faceKeyInfo, turboFaceKeyInfo, comboKeyInfo>;
+constexpr auto abComboArr = std::array{abCombo};
+constexpr auto cdComboArr = std::array{cdCombo};
+constexpr auto abcComboArr = std::array{abcCombo};
+constexpr auto abTurboArr = std::array{abTurboCombo};
+constexpr auto cdTurboArr = std::array{cdTurboCombo};
+constexpr auto abcTurboArr = std::array{abcTurboCombo};
+constexpr auto gpKeyInfo = concatToArrayNow<dpadKeyInfo, centerKeyInfo, faceKeyInfo, turboFaceKeyInfo, abComboArr, cdComboArr, abcComboArr, abTurboArr, cdTurboArr, abcTurboArr>;
 constexpr auto gp2KeyInfo = transpose(gpKeyInfo, 1);
 
 std::span<const KeyCategory> AppMeta::keyCategories()
@@ -151,7 +164,7 @@ bool AppMeta::allowsTurboModifier(KeyCode c)
 
 constexpr FRect gpImageCoords(IRect cellRelBounds)
 {
-	constexpr F2Size imageSize{256, 256};
+	constexpr F2Size imageSize{512, 512};
 	constexpr int cellSize = 32;
 	return (cellRelBounds.relToAbs() * cellSize).as<float>() / imageSize;
 }
@@ -161,27 +174,47 @@ AssetDesc AppMeta::vControllerAssetDesc(KeyInfo key)
 	static constexpr struct VirtualControllerAssets
 	{
 		AssetDesc dpad{AssetFileID::gamepadOverlay, gpImageCoords({{}, {4, 4}})},
+		jointDpad{AssetFileID::gamepadOverlay, gpImageCoords({{8, 4}, {4, 4}})},
 
 		a{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 0}, {2, 2}})},
 		b{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 0}, {2, 2}})},
 		c{AssetFileID::gamepadOverlay,      gpImageCoords({{4, 2}, {2, 2}})},
 		d{AssetFileID::gamepadOverlay,      gpImageCoords({{6, 2}, {2, 2}})},
 		abc{AssetFileID::gamepadOverlay,    gpImageCoords({{0, 4}, {2, 2}})},
+		ab{AssetFileID::gamepadOverlay,     gpImageCoords({{4, 4}, {2, 2}})},
+		cd{AssetFileID::gamepadOverlay,     gpImageCoords({{6, 4}, {2, 2}})},
 		select{AssetFileID::gamepadOverlay, gpImageCoords({{0, 6}, {2, 1}}), {1, 2}},
 		start{AssetFileID::gamepadOverlay,  gpImageCoords({{0, 7}, {2, 1}}), {1, 2}},
 		test{AssetFileID::gamepadOverlay,   gpImageCoords({{2, 6}, {2, 1}}), {1, 2}},
-
-		blank{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})};
+		blank{AssetFileID::gamepadOverlay, gpImageCoords({{2, 4}, {2, 2}})},
+		ta{AssetFileID::gamepadOverlay, gpImageCoords({{8, 0}, {2, 2}})},
+		tb{AssetFileID::gamepadOverlay, gpImageCoords({{10, 0}, {2, 2}})},
+		tc{AssetFileID::gamepadOverlay, gpImageCoords({{12, 0}, {2, 2}})},
+		td{AssetFileID::gamepadOverlay, gpImageCoords({{14, 0}, {2, 2}})},
+		tab{AssetFileID::gamepadOverlay, gpImageCoords({{8, 2}, {2, 2}})},
+		tcd{AssetFileID::gamepadOverlay, gpImageCoords({{10, 2}, {2, 2}})},
+		tabc{AssetFileID::gamepadOverlay, gpImageCoords({{12, 2}, {2, 2}})};
 	} virtualControllerAssets;
 
-	if(key[0] == 0)
-		return virtualControllerAssets.dpad;
+	bool direction = NeoKey(key[0]) == NeoKey::Up || NeoKey(key[0]) == NeoKey::Right
+		|| NeoKey(key[0]) == NeoKey::Down || NeoKey(key[0]) == NeoKey::Left;
+	if(key[0] == 0 || direction)
+		return key.flags.bothPlayers ? virtualControllerAssets.jointDpad : virtualControllerAssets.dpad;
+	auto face = [&](AssetDesc plain, AssetDesc turboImg) { return key.flags.turbo ? turboImg : plain; };
 	switch(NeoKey(key[0]))
 	{
-		case NeoKey::A: return NeoKey(key[1]) == NeoKey::B && NeoKey(key[2]) == NeoKey::C ? virtualControllerAssets.abc : virtualControllerAssets.a;
-		case NeoKey::B: return virtualControllerAssets.b;
-		case NeoKey::C: return virtualControllerAssets.c;
-		case NeoKey::D: return virtualControllerAssets.d;
+		case NeoKey::A:
+			if(NeoKey(key[1]) == NeoKey::B && NeoKey(key[2]) == NeoKey::C)
+				return face(virtualControllerAssets.abc, virtualControllerAssets.tabc);
+			if(NeoKey(key[1]) == NeoKey::B)
+				return face(virtualControllerAssets.ab, virtualControllerAssets.tab);
+			return face(virtualControllerAssets.a, virtualControllerAssets.ta);
+		case NeoKey::B: return face(virtualControllerAssets.b, virtualControllerAssets.tb);
+		case NeoKey::C:
+			if(NeoKey(key[1]) == NeoKey::D)
+				return face(virtualControllerAssets.cd, virtualControllerAssets.tcd);
+			return face(virtualControllerAssets.c, virtualControllerAssets.tc);
+		case NeoKey::D: return face(virtualControllerAssets.d, virtualControllerAssets.td);
 		case NeoKey::Select: return virtualControllerAssets.select;
 		case NeoKey::Start: return virtualControllerAssets.start;
 		case NeoKey::TestSwitch: return virtualControllerAssets.test;
@@ -198,6 +231,8 @@ SystemInputDeviceDesc AppMeta::inputDeviceDesc(int idx)
 		InputComponentDesc{"Select", {&centerKeyInfo[0], 1}, InputComponent::button, LB2DO},
 		InputComponentDesc{"Start", {&centerKeyInfo[1], 1}, InputComponent::button, RB2DO},
 		InputComponentDesc{"Select/Start", centerKeyInfo, InputComponent::button, CB2DO, {.altConfig = true}},
+		InputComponentDesc{"Both Players D-Pad", bothDpadKeyInfo, InputComponent::dPad, LB2DO, {.altConfig = true}},
+		InputComponentDesc{"Both Players", bothFaceKeyInfo, InputComponent::button, RB2DO, {.altConfig = true, .staggeredLayout = true}},
 	};
 	static constexpr SystemInputDeviceDesc gamepadDesc{"Gamepad", gamepadComponents};
 	return gamepadDesc;

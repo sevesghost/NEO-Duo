@@ -43,14 +43,17 @@ public:
 private:
 	EmuVideoLayer &layer;
 	VController &vController;
-	Gfx::Text exitText, resetText;
+	Gfx::Text exitText, resetText, smallerText, largerText;
 	Gfx::IQuads quads;
-	WRect exitBounds{}, resetBounds{};
+	WRect exitBounds{}, resetBounds{}, smallerBounds{}, largerBounds{};
 	Input::DragTrackerState dragState;
-	int startPosOffset{};
-	int posOffsetLimit{};
+	int startOffsetX{};
+	int startOffsetY{};
 
-	void updateVideo(int offset);
+	bool landscapePlacement() const;
+	void updateVideo(int x, int y);
+	void updateScale(int scale);
+	void resetPlacement();
 };
 
 }

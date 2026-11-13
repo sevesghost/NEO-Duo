@@ -1,21 +1,24 @@
+/* NEO-Duo
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Original 3x3 neighborhood. Each output is the source coordinate plus one
+ * half-texel step so the fragment can read the surrounding pixels.
+ */
 uniform vec2 srcTexelHalfDelta;
 in vec2 texUV;
 out vec2 texUVOut[9];
 
 void main()
 {
-	vec2 offsetDiag = vec2(srcTexelHalfDelta.x, srcTexelHalfDelta.y);
-	vec2 offsetDiagNegX = vec2(-srcTexelHalfDelta.x, srcTexelHalfDelta.y);
-	vec2 offsetX = vec2(srcTexelHalfDelta.x, 0.0);
-	vec2 offsetY = vec2(0.0, srcTexelHalfDelta.y);
-	texUVOut[0] = texUV - offsetDiag;
-	texUVOut[1] = texUV - offsetY;
-	texUVOut[2] = texUV - offsetDiagNegX;
-	texUVOut[3] = texUV - offsetX;
+	vec2 stepX = vec2(srcTexelHalfDelta.x, 0.0);
+	vec2 stepY = vec2(0.0, srcTexelHalfDelta.y);
+	texUVOut[0] = texUV - stepX - stepY;
+	texUVOut[1] = texUV - stepY;
+	texUVOut[2] = texUV + stepX - stepY;
+	texUVOut[3] = texUV - stepX;
 	texUVOut[4] = texUV;
-	texUVOut[5] = texUV + offsetX;
-	texUVOut[6] = texUV + offsetDiagNegX;
-	texUVOut[7] = texUV + offsetY;
-	texUVOut[8] = texUV + offsetDiag;
+	texUVOut[5] = texUV + stepX;
+	texUVOut[6] = texUV - stepX + stepY;
+	texUVOut[7] = texUV + stepY;
+	texUVOut[8] = texUV + stepX + stepY;
 	gl_Position = POS;
 }

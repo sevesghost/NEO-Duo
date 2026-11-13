@@ -6,10 +6,6 @@ project(
 	HOMEPAGE_URL "https://www.explusalpha.com/"
 )
 
-if(ARCH STREQUAL arm)
-	enable_language(ASM)
-endif()
-
 include(emuFrameworkUtils.cmake)
 printConfigInfo()
 configureAppTarget(neoemu)

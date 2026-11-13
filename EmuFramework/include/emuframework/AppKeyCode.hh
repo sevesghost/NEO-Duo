@@ -50,6 +50,7 @@ enum class AppKeyCode : KeyCode
 	hardReset,
 	resetMenu,
 	closeContent,
+	toggleDuoLayout,
 };
 
 inline constexpr struct AppKeys
@@ -73,7 +74,8 @@ inline constexpr struct AppKeys
 	softReset = KeyInfo::appKey(AppKeyCode::softReset),
 	hardReset = KeyInfo::appKey(AppKeyCode::hardReset),
 	resetMenu = KeyInfo::appKey(AppKeyCode::resetMenu),
-	exitApp = KeyInfo::appKey(AppKeyCode::exitApp);
+	exitApp = KeyInfo::appKey(AppKeyCode::exitApp),
+	toggleDuoLayout = KeyInfo::appKey(AppKeyCode::toggleDuoLayout);
 
 	constexpr const KeyInfo *data() const { return &openMenu; }
 	static constexpr size_t size() { return sizeof(AppKeys) / sizeof(KeyInfo); }

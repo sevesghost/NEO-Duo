@@ -1,7 +1,6 @@
 #!/bin/bash
 
 makefilesToRun='
-	src/btstack/ios-armv7.mk
 
 	src/libogg/ios-armv7.mk
 	

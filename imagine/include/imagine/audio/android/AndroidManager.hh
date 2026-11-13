@@ -25,7 +25,7 @@ class AndroidManager
 {
 public:
 	static constexpr bool HAS_SOLO_MIX = true;
-	static constexpr bool SOLO_MIX_DEFAULT = true;
+	static constexpr bool SOLO_MIX_DEFAULT = false;
 
 	AndroidManager(ApplicationContext);
 	bool hasFloatFormat() const;

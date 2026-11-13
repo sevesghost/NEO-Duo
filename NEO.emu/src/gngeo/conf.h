@@ -1,3 +1,8 @@
+/* This file is part of Gngeo.
+ * Copyright (C) the Gngeo team.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 #ifndef _CONF_H_
 #define _CONF_H_
 

@@ -27,10 +27,15 @@ extern "C"
 	#include <gngeo/state.h>
 }
 
-#include <z80conf.hh>
+#include <z80/z80_core.hh>
 
-static Z80CPU<z80Desc> Z80;
+static MameZ80::z80_device Z80;
 uint8_t mame_z80mem[0x10000];
+
+static uint8_t z80ReadMem(uint16_t addr) { return mame_z80mem[addr]; }
+static void z80WriteMem(uint16_t addr, uint8_t data) { mame_z80mem[addr] = data; }
+static uint8_t z80ReadPort(uint16_t port) { return z80_port_read(port); }
+static void z80WritePort(uint16_t port, uint8_t data) { z80_port_write(port, data); }
 static const uint8_t *z80map1, *z80map2, *z80map3, *z80map4;
 
 /* cpu interface implementation */
@@ -71,41 +76,32 @@ static int makeStateData(Stream *gzf, T &data, int mode)
 
 CLINK void cpu_z80_mkstate(Stream *gzf,int mode)
 {
-	PAIR dummyPair{};
-	makeStateData(gzf, dummyPair, mode); // PREPC in old state version
-	makeStateData(gzf, Z80.pc, mode);
-	makeStateData(gzf, Z80.sp, mode);
-	makeStateData(gzf, Z80.af, mode);
-	makeStateData(gzf, Z80.bc, mode);
-	makeStateData(gzf, Z80.de, mode);
-	makeStateData(gzf, Z80.hl, mode);
-	makeStateData(gzf, Z80.ix, mode);
-	makeStateData(gzf, Z80.iy, mode);
-	makeStateData(gzf, Z80.af2, mode);
-	makeStateData(gzf, Z80.bc2, mode);
-	makeStateData(gzf, Z80.de2, mode);
-	makeStateData(gzf, Z80.hl2, mode);
-	makeStateData(gzf, Z80.r, mode);
-	makeStateData(gzf, Z80.r2, mode);
-	makeStateData(gzf, Z80.iff1, mode);
-	makeStateData(gzf, Z80.iff2, mode);
-	makeStateData(gzf, Z80.halt, mode);
-	makeStateData(gzf, Z80.im, mode);
-	makeStateData(gzf, Z80.i, mode);
-	uint8_t dummyByte{};
-	makeStateData(gzf, dummyByte, mode); // irq_max in old state version
-	makeStateData(gzf, Z80.wz, mode); // ea in old state version, now used for wz
-	int dummyInt = Z80.after_ei;
-	makeStateData(gzf, dummyInt, mode); // after_ei was 'int' in old state version
-	Z80.after_ei = dummyInt;
-	makeStateData(gzf, dummyByte, mode); // request_irq in old state version
-	makeStateData(gzf, dummyByte, mode); // service_irq in old state version
-	makeStateData(gzf, Z80.nmi_state, mode);
-	makeStateData(gzf, Z80.irq_state, mode);
-	makeStateData(gzf, dummyByte, mode); // int_state[Z80_MAXDAISY] in old state version
-	makeStateData(gzf, dummyByte, mode); // 3 padding bytes in old state version
-	makeStateData(gzf, dummyByte, mode);
-	makeStateData(gzf, dummyByte, mode);
+	// Register image for the BSD-3 MAME Z80. Older Portable Z80 states are
+	// rejected by the state header before this runs.
+	uint16_t pc{}, sp{}, af{}, bc{}, de{}, hl{}, ix{}, iy{}, wz{}, af2{}, bc2{}, de2{}, hl2{};
+	uint8_t r{}, r2{}, i{}, im{}, halt{}, iff1{}, iff2{}, irq{}, nmi{};
+	if(mode == STWRITE)
+	{
+		pc = Z80.pc(); sp = Z80.sp(); af = Z80.af(); bc = Z80.bc(); de = Z80.de(); hl = Z80.hl();
+		ix = Z80.ix(); iy = Z80.iy(); wz = Z80.wz();
+		af2 = Z80.af2(); bc2 = Z80.bc2(); de2 = Z80.de2(); hl2 = Z80.hl2();
+		r = Z80.r(); r2 = Z80.r2(); i = Z80.i(); im = Z80.im(); halt = Z80.haltFlag();
+		iff1 = Z80.iff1(); iff2 = Z80.iff2(); irq = Z80.irqState(); nmi = Z80.nmiState();
+	}
+	makeStateData(gzf, pc, mode); makeStateData(gzf, sp, mode); makeStateData(gzf, af, mode);
+	makeStateData(gzf, bc, mode); makeStateData(gzf, de, mode); makeStateData(gzf, hl, mode);
+	makeStateData(gzf, ix, mode); makeStateData(gzf, iy, mode); makeStateData(gzf, wz, mode);
+	makeStateData(gzf, af2, mode); makeStateData(gzf, bc2, mode); makeStateData(gzf, de2, mode);
+	makeStateData(gzf, hl2, mode);
+	makeStateData(gzf, r, mode); makeStateData(gzf, r2, mode); makeStateData(gzf, i, mode);
+	makeStateData(gzf, im, mode); makeStateData(gzf, halt, mode);
+	makeStateData(gzf, iff1, mode); makeStateData(gzf, iff2, mode);
+	makeStateData(gzf, irq, mode); makeStateData(gzf, nmi, mode);
+	if(mode == STREAD)
+	{
+		Z80.setRegisters(pc, sp, af, bc, de, hl, ix, iy, wz, af2, bc2, de2, hl2,
+			r, r2, i, im, halt, iff1, iff2, irq, nmi);
+	}
 
 	mkstate_data(gzf, mame_z80mem, 0x10000, mode);
 	if (mode==STREAD)
@@ -119,7 +115,9 @@ CLINK void cpu_z80_mkstate(Stream *gzf,int mode)
 
 CLINK void cpu_z80_init(void)
 {
-	Z80.init();
+	Z80.setMemHandlers(z80ReadMem, z80WriteMem);
+	Z80.setIoHandlers(z80ReadPort, z80WritePort);
+	Z80.setIrqVectorCallback([]() -> uint8_t { return 0xff; });
 
 	/* bank initalisation */
 	z80map1 = memory.rom.cpu_z80.p + 0x8000;
@@ -138,27 +136,25 @@ CLINK void cpu_z80_init(void)
 
 CLINK void cpu_z80_run(int cycles)
 {
-	Z80.cycleCount = 0;
 	Z80.run(cycles);
 }
 
 CLINK void cpu_z80_nmi(void)
 {
-	Z80.setNmiLine(ASSERT_LINE);
-	Z80.setNmiLine(CLEAR_LINE);
+	Z80.pulseNmi();
 }
 
-CLINK void cpu_z80_raise_irq(int l)
+CLINK void cpu_z80_raise_irq(int)
 {
-	Z80.irq_state = ASSERT_LINE;
+	Z80.setIrq(true);
 }
 
 CLINK void cpu_z80_lower_irq(void)
 {
-	Z80.irq_state = CLEAR_LINE;
+	Z80.setIrq(false);
 }
 
 uint16_t cpu_z80_get_pc(void)
 {
-	return 0;
+	return Z80.pc();
 }

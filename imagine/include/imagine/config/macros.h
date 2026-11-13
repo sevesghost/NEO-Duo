@@ -96,9 +96,7 @@
 
 #if defined __ANDROID__
 #define CONFIG_BLUETOOTH_ANDROID
-#elif defined __APPLE__ && TARGET_OS_IPHONE
-#define CONFIG_BLUETOOTH_BTSTACK
-#elif defined __linux__
+#elif defined __linux__ && !defined __ANDROID__
 #define CONFIG_BLUETOOTH_BLUEZ
 #endif
 

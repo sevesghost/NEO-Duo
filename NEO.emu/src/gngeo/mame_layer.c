@@ -1,3 +1,8 @@
+/* This file is part of Gngeo.
+ * Copyright (C) the Gngeo team.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 #include "mame_layer.h"
 #include <string.h>
 #include <stdio.h>

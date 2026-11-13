@@ -99,7 +99,11 @@ public:
 	float landscapeAspectRatio;
 	float portraitAspectRatio;
 	int16_t landscapeOffset{};
+	int16_t landscapeOffsetY{};
 	int16_t portraitOffset{};
+	int16_t portraitOffsetX{};
+	int16_t landscapePlaceScale{100};
+	int16_t portraitPlaceScale{100};
 private:
 	ImageEffectId userEffectId{};
 	ImageOverlayId userOverlayEffectId{};

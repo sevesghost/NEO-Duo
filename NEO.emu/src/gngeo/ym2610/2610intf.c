@@ -1,3 +1,9 @@
+/* YM2610 interface.
+ * Copyright (C) Ernesto Corvi, originally from MAME. BSD-3-Clause.
+ * Gngeo integration Copyright (C) the Gngeo team. GPL-2.0-or-later.
+ * SPDX-License-Identifier: BSD-3-Clause AND GPL-2.0-or-later
+ */
+
 /***************************************************************************
 
   2610intf.c

@@ -1,3 +1,7 @@
+/* NEO-Duo
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Sample the source texture at the interpolated coordinate.
+ */
 in lowp vec2 texUVOut;
 
 void main()

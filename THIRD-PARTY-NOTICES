@@ -1,0 +1,87 @@
+Third-party notices for NEO-Duo
+================================
+
+NEO-Duo itself is GPL-3.0-or-later. See COPYING.GPL. The components below
+are used under their own licenses. This list names the terms; it does not
+replace the copyright notices in the sources.
+
+Musashi 68000
+  NEO.emu/src/musashi
+  Copyright Karl Stenerud
+  SPDX-License-Identifier: MIT
+  The 68000 build does not include the FPU, the PMMU, or SoftFloat.
+
+MAME ZiLOG Z80
+  NEO.emu/src/z80
+  Copyright Juergen Buchmueller and the MAME team
+  SPDX-License-Identifier: BSD-3-Clause
+  https://github.com/mamedev/mame
+
+YM2610
+  NEO.emu/src/gngeo/ym2610/ym2610.c
+  Copyright Jarek Burczynski and Tatsuyuki Satoh
+  SPDX-License-Identifier: GPL-2.0-or-later
+
+YM2610 interface
+  NEO.emu/src/gngeo/ym2610/2610intf.c
+  Copyright Ernesto Corvi (BSD-3-Clause) and the Gngeo team (GPL-2.0-or-later)
+  SPDX-License-Identifier: BSD-3-Clause AND GPL-2.0-or-later
+
+Neo Geo protection and bootleg decryption
+  NEO.emu/src/gngeo/neocrypt.c
+  NEO.emu/src/gngeo/neoboot.c
+  Derived from MAME
+  SPDX-License-Identifier: BSD-3-Clause
+
+Gngeo
+  NEO.emu/src/gngeo
+  Copyright the Gngeo team
+  SPDX-License-Identifier: GPL-2.0-or-later
+
+libc++
+  Built from the NDK / LLVM libc++ for the Android ABIs.
+  Copyright the LLVM Project
+  Apache-2.0 WITH LLVM-exception
+
+Xiph.org (libogg, libvorbis, FLAC)
+  imagine/bundle/all/src/libogg, libvorbis, and flac
+  Copyright the Xiph.Org Foundation
+  SPDX-License-Identifier: BSD-3-Clause
+
+XZ Utils (liblzma)
+  imagine/bundle/all/src/xz
+  Copyright Lasse Collin and others
+  Public domain
+
+libarchive
+  imagine/bundle/all/src/libarchive
+  Copyright Tim Kientzle and the libarchive contributors
+  SPDX-License-Identifier: BSD-2-Clause
+
+libpng
+  Used through the image dependencies.
+  Copyright the libpng authors
+  libpng License (PNG Reference Library License, version 2)
+
+zlib
+  Copyright Jean-loup Gailly and Mark Adler
+  zlib License
+
+GLM
+  imagine/include/imagine/glm
+  Copyright G-Truc Creation
+  Happy Bunny License / MIT
+  https://github.com/g-truc/glm
+
+magic_enum
+  imagine/include/imagine/util/magic_enum
+  Copyright 2019-2024 Daniil Goncharov
+  SPDX-License-Identifier: MIT
+  https://github.com/Neargye/magic_enum
+
+Boost.StaticString
+  imagine/include/imagine/util/boost/static_string
+  Copyright 2016-2019 Vinnie Falco
+  Copyright 2019-2020 Krystian Stasiowski
+  Boost Software License, Version 1.0
+  https://www.boost.org/LICENSE_1_0.txt

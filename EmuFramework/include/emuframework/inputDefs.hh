@@ -39,7 +39,7 @@ struct KeyFlags
 	appCode:1{},
 	turbo:1{},
 	toggle:1{},
-	unused:1{},
+	bothPlayers:1{},
 	deviceId:4{};
 
 	constexpr bool operator==(const KeyFlags &) const = default;

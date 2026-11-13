@@ -83,7 +83,11 @@ void EmuApp::saveConfigFile(FileIO &io)
 	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO, videoLayer.landscapeAspectRatio, defaultVideoAspectRatio());
 	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO, videoLayer.portraitAspectRatio, defaultVideoAspectRatio());
 	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_OFFSET, videoLayer.landscapeOffset, 0);
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_OFFSET_Y, videoLayer.landscapeOffsetY, 0);
 	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_OFFSET, videoLayer.portraitOffset, 0);
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_OFFSET_X, videoLayer.portraitOffsetX, 0);
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_LANDSCAPE_PLACE_SCALE, videoLayer.landscapePlaceScale, int16_t{100});
+	writeOptionValueIfNotDefault(io, CFGKEY_VIDEO_PORTRAIT_PLACE_SCALE, videoLayer.portraitPlaceScale, int16_t{100});
 	writeOptionValueIfNotDefault(io, fastModeSpeed);
 	writeOptionValueIfNotDefault(io, slowModeSpeed);
 	writeOptionValueIfNotDefault(io, CFGKEY_FRAME_RATE, outputTimingManager.frameRateOption(VideoSystem::NATIVE_NTSC), OutputTimingManager::autoOption);
@@ -230,8 +234,12 @@ EmuApp::ConfigParams EmuApp::loadConfigFile(ApplicationContext ctx)
 				case CFGKEY_CONTENT_ROTATION: return readOptionValue(io, contentRotation);
 				case CFGKEY_VIDEO_LANDSCAPE_ASPECT_RATIO: return readOptionValue(io, videoLayer.landscapeAspectRatio, isValidAspectRatio);
 				case CFGKEY_VIDEO_PORTRAIT_ASPECT_RATIO: return readOptionValue(io, videoLayer.portraitAspectRatio, isValidAspectRatio);
-				case CFGKEY_VIDEO_LANDSCAPE_OFFSET: return readOptionValue(io, videoLayer.landscapeOffset, [](auto v){return v >= -4096 && v <= 4096;});
-				case CFGKEY_VIDEO_PORTRAIT_OFFSET: return readOptionValue(io, videoLayer.portraitOffset, [](auto v){return v >= -4096 && v <= 4096;});
+				case CFGKEY_VIDEO_LANDSCAPE_OFFSET: return readOptionValue(io, videoLayer.landscapeOffset, [](auto v){return v >= -16384 && v <= 16384;});
+				case CFGKEY_VIDEO_LANDSCAPE_OFFSET_Y: return readOptionValue(io, videoLayer.landscapeOffsetY, [](auto v){return v >= -16384 && v <= 16384;});
+				case CFGKEY_VIDEO_PORTRAIT_OFFSET: return readOptionValue(io, videoLayer.portraitOffset, [](auto v){return v >= -16384 && v <= 16384;});
+				case CFGKEY_VIDEO_PORTRAIT_OFFSET_X: return readOptionValue(io, videoLayer.portraitOffsetX, [](auto v){return v >= -16384 && v <= 16384;});
+				case CFGKEY_VIDEO_LANDSCAPE_PLACE_SCALE: return readOptionValue(io, videoLayer.landscapePlaceScale, [](auto v){return v >= 25 && v <= 300;});
+				case CFGKEY_VIDEO_PORTRAIT_PLACE_SCALE: return readOptionValue(io, videoLayer.portraitPlaceScale, [](auto v){return v >= 25 && v <= 300;});
 				case CFGKEY_INPUT_KEY_CONFIGS_V2: return inputManager.readCustomKeyConfig(io);
 				case CFGKEY_INPUT_DEVICE_CONFIGS: return inputManager.readSavedInputDevices(io);
 				case CFGKEY_SHOW_FRAME_TIMING_STATS: return readOptionValue(io, showFrameTimingStats);

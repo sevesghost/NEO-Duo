@@ -1,3 +1,7 @@
+/* NEO-Duo
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Pass the texture coordinate through unchanged.
+ */
 in vec2 texUV;
 out vec2 texUVOut;
 

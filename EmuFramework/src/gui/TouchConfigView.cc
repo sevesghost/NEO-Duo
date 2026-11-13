@@ -787,8 +787,176 @@ TouchConfigView::TouchConfigView(ViewAttachParams attach, VController &vCtrl):
 		int(vCtrl.inputPlayer()),
 		playerItems,
 		{
-			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setInputPlayer(item.id); }
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				if(vController.twoPlayerControls())
+					return;
+				vController.setInputPlayer(item.id);
+			}
 		},
+	},
+	twoPlayers
+	{
+		"One Person, Both Players", attach,
+		vCtrl.twoPlayerControls(),
+		[this](BoolMenuItem &item)
+		{
+			vController.setTwoPlayerControls(item.flipBoolValue(*this));
+			reloadItems();
+		}
+	},
+	duoLayoutItem
+	{
+		{"Separate", attach, {.id = 0}},
+		{"Joint", attach, {.id = 1}},
+	},
+	duoLayout
+	{
+		"Control Layout", attach,
+		int(vCtrl.duoLayout()),
+		duoLayoutItem,
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item)
+			{
+				vController.setDuoLayout(item.id == 0 ? DuoLayout::Separate : DuoLayout::Joint);
+				reloadItems();
+			}
+		},
+	},
+	sharedFaceRow
+	{
+		"Shared A-D Row", attach,
+		vCtrl.showSharedFaceRow(),
+		[this](BoolMenuItem &item)
+		{
+			vController.setShowSharedFaceRow(item.flipBoolValue(*this));
+		}
+	},
+	p1SizeItem
+	{
+		{"9mm", attach, {.id = 900}},
+		{"10mm", attach, {.id = 1000}},
+		{"12mm", attach, {.id = 1200}},
+		{"14mm", attach, {.id = 1400}},
+		{"16mm", attach, {.id = 1600}},
+		{"20mm", attach, {.id = 2000}},
+	},
+	p1Size
+	{
+		"P1 Button Size", attach,
+		MenuId{vCtrl.playerFaceSizeMM100x(0)},
+		p1SizeItem,
+		{
+			.onSetDisplayString = [this](auto, Gfx::Text &t)
+			{
+				t.resetString(std::format("{:g}mm", vController.playerFaceSizeMM100x(0) / 100.));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setPlayerFaceSizeMM100x(0, item.id); }
+		},
+	},
+	p2SizeItem
+	{
+		{"9mm", attach, {.id = 900}},
+		{"10mm", attach, {.id = 1000}},
+		{"12mm", attach, {.id = 1200}},
+		{"14mm", attach, {.id = 1400}},
+		{"16mm", attach, {.id = 1600}},
+		{"20mm", attach, {.id = 2000}},
+	},
+	p2Size
+	{
+		"P2 Button Size", attach,
+		MenuId{vCtrl.playerFaceSizeMM100x(1)},
+		p2SizeItem,
+		{
+			.onSetDisplayString = [this](auto, Gfx::Text &t)
+			{
+				t.resetString(std::format("{:g}mm", vController.playerFaceSizeMM100x(1) / 100.));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setPlayerFaceSizeMM100x(1, item.id); }
+		},
+	},
+	duoAlphaItem
+	{
+		{"25%", attach, {.id = int(255 * .25)}},
+		{"50%", attach, {.id = int(255 * .5)}},
+		{"75%", attach, {.id = int(255 * .75)}},
+		{"100%", attach, {.id = 255}},
+	},
+	p1Alpha
+	{
+		"P1 Opacity", attach,
+		MenuId{vCtrl.playerOpacity(0) ? vCtrl.playerOpacity(0) : int(vCtrl.buttonAlpha())},
+		duoAlphaItem,
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setPlayerOpacity(0, item.id); }
+		},
+	},
+	p2Alpha
+	{
+		"P2 Opacity", attach,
+		MenuId{vCtrl.playerOpacity(1) ? vCtrl.playerOpacity(1) : int(vCtrl.buttonAlpha())},
+		duoAlphaItem,
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setPlayerOpacity(1, item.id); }
+		},
+	},
+	lockPlayerSizes
+	{
+		"Lock P1/P2 Size", attach,
+		vCtrl.lockPlayerSizes(),
+		[this](BoolMenuItem &item)
+		{
+			vController.setLockPlayerSizes(item.flipBoolValue(*this));
+			p1Size.setSelected(MenuId{vController.playerFaceSizeMM100x(0)}, *this);
+			p2Size.setSelected(MenuId{vController.playerFaceSizeMM100x(1)}, *this);
+		}
+	},
+	sharedSizeItem
+	{
+		{"9mm", attach, {.id = 900}},
+		{"10mm", attach, {.id = 1000}},
+		{"12mm", attach, {.id = 1200}},
+		{"14mm", attach, {.id = 1400}},
+		{"16mm", attach, {.id = 1600}},
+		{"20mm", attach, {.id = 2000}},
+	},
+	sharedSize
+	{
+		"Shared Button Size", attach,
+		MenuId{vCtrl.sharedFaceSizeMM100x()},
+		sharedSizeItem,
+		{
+			.onSetDisplayString = [this](auto, Gfx::Text &t)
+			{
+				t.resetString(std::format("{:g}mm", vController.sharedFaceSizeMM100x() / 100.));
+				return true;
+			},
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setSharedFaceSizeMM100x(item.id); }
+		},
+	},
+	sharedAlphaItem
+	{
+		{"25%", attach, {.id = int(255 * .25)}},
+		{"40%", attach, {.id = int(255 * .4)}},
+		{"50%", attach, {.id = int(255 * .5)}},
+		{"75%", attach, {.id = int(255 * .75)}},
+		{"100%", attach, {.id = 255}},
+	},
+	sharedAlpha
+	{
+		"Shared Opacity", attach,
+		MenuId{vCtrl.sharedOpacity()},
+		sharedAlphaItem,
+		{
+			.defaultItemOnSelect = [this](TextMenuItem &item){ vController.setSharedOpacity(item.id); }
+		},
+	},
+	modeHint
+	{
+		"Mode button: hold 0.5s", attach
 	},
 	sizeItem
 	{
@@ -1002,7 +1170,29 @@ void TouchConfigView::reloadItems()
 	item.emplace_back(&touchCtrl);
 	if(AppMeta::maxPlayers > 1)
 	{
+		player.setActive(!vController.twoPlayerControls());
 		item.emplace_back(&player);
+		item.emplace_back(&twoPlayers);
+		duoLayout.setActive(vController.twoPlayerControls());
+		sharedFaceRow.setActive(vController.twoPlayerControls() && vController.duoLayout() == DuoLayout::Separate);
+		p1Size.setActive(vController.twoPlayerControls());
+		p2Size.setActive(vController.twoPlayerControls() && vController.duoLayout() == DuoLayout::Separate);
+		p1Alpha.setActive(vController.twoPlayerControls());
+		p2Alpha.setActive(vController.twoPlayerControls() && vController.duoLayout() == DuoLayout::Separate);
+		lockPlayerSizes.setActive(vController.twoPlayerControls());
+		sharedSize.setActive(vController.twoPlayerControls());
+		sharedAlpha.setActive(vController.twoPlayerControls());
+		modeHint.setActive(vController.twoPlayerControls());
+		item.emplace_back(&duoLayout);
+		item.emplace_back(&modeHint);
+		item.emplace_back(&sharedFaceRow);
+		item.emplace_back(&lockPlayerSizes);
+		item.emplace_back(&p1Size);
+		item.emplace_back(&p2Size);
+		item.emplace_back(&sharedSize);
+		item.emplace_back(&p1Alpha);
+		item.emplace_back(&p2Alpha);
+		item.emplace_back(&sharedAlpha);
 	}
 	item.emplace_back(&size);
 	item.emplace_back(&btnPlace);

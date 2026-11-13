@@ -1,3 +1,8 @@
+/* This file is part of Gngeo.
+ * Copyright (C) the Gngeo team.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 /* Tile drawing template
    use RENAME to set the name of the function
    use PUTPIXEL(dest,src) to set the putpixel function/macro
